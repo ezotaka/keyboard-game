@@ -158,3 +158,90 @@ feat(domain): add Game entity with basic properties
 2. エージェント間での成果物の引き継ぎを明確化
 3. 品質チェック（code-reviewer）を各段階で実施
 4. ドキュメント更新（documentation-generator）を定期実施
+
+## Linear Issue管理方針
+
+### Issue作業ルール
+- **すべての作業はIssueベース**: 機能開発、バグ修正、リファクタリングなど全ての作業は必ずLinear Issueを作成または更新
+- **作業開始前**: 該当IssueをIn Progress状態に更新
+- **作業完了後**: Issue内容を更新し、完了状態に変更
+- **サブタスクの管理**: 大きなIssueは適切にサブタスクに分割
+
+### Issue作成・更新タイミング
+
+#### 作業開始時
+1. **新規作業**: 新しいIssueを作成
+2. **既存Issue**: ステータスを「In Progress」に更新
+3. **詳細な作業計画**: タスクリストを詳細化
+4. **見積もり更新**: 必要に応じて作業時間を見直し
+
+#### 作業中
+1. **進捗更新**: 重要な進捗はIssueコメントで記録
+2. **問題発生**: ブロッカーや課題をコメントで報告
+3. **方針変更**: 実装方針が変わった場合は理由と共に記録
+
+#### 作業完了時
+1. **成果物記録**: 実装内容、テスト結果を記載
+2. **ステータス更新**: 完了状態に変更
+3. **関連Issue**: 依存関係のあるIssueを更新
+4. **次のアクション**: フォローアップが必要な場合は新Issue作成
+
+### Issue記録内容
+
+#### 必須項目
+- **Title**: 明確で具体的なタイトル
+- **Description**: 目的、要件、受け入れ条件
+- **Labels**: 適切なラベル付け（feature, bug, refactor等）
+- **Priority**: 優先度設定
+- **Assignee**: 担当者（通常はClaude/自分）
+
+#### 推奨項目
+- **Tasks**: チェックリスト形式のタスク分割
+- **Links**: 関連Issue、ドキュメント、PRへのリンク
+- **Comments**: 作業ログ、決定事項、課題等
+
+### Issue活用例
+
+#### 開発作業例
+```
+Title: feat(domain): implement Game entity with TDD
+
+Description:
+## 目的
+ゲームドメインエンティティをTDDで実装
+
+## タスク
+- [ ] Game entity の仕様設計
+- [ ] 失敗するテストケース作成 (Red)
+- [ ] Game entity 実装 (Green)
+- [ ] リファクタリング (Refactor)
+- [ ] 追加テストケース作成
+
+## 受け入れ条件
+- [ ] 全テストがパス
+- [ ] コードカバレッジ100%
+- [ ] Clean Architecture準拠
+```
+
+#### バグ修正例
+```
+Title: fix(keyboard): keyboard detection not working on macOS
+
+Description:
+## 問題
+macOSでキーボード検知が動作しない
+
+## 調査結果
+[調査内容を記載]
+
+## 修正方針
+[修正方針を記載]
+
+## テスト計画
+[テスト方法を記載]
+```
+
+### 自動化連携
+- **Git連携**: コミットメッセージにIssue IDを含める（例: `feat(domain): add Game entity [DEV-15]`）
+- **PR連携**: Pull RequestとIssueを関連付け
+- **進捗追跡**: Issue完了率でプロジェクト進捗を可視化
