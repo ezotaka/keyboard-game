@@ -10,7 +10,8 @@
     "src/domain/**/*",
     "src/application/**/*",
     "src/infrastructure/**/*",
-    "src/shared/**/*"
+    "src/shared/**/*",
+    "src/demo/**/*"
   ],
   "exclude": [
     "src/presentation/views/**/*",
