@@ -1,0 +1,71 @@
+{
+  "name": "keyboard-game",
+  "version": "0.1.0",
+  "description": "Multi-keyboard typing game for kindergarten children",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "concurrently \"npm run build:watch\" \"npm run electron:dev\"",
+    "build": "npm run build:clean && npm run build:main && npm run build:renderer",
+    "build:clean": "rimraf dist",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "tsc -p tsconfig.renderer.json",
+    "build:watch": "npm run build:main -- --watch",
+    "electron:dev": "wait-on dist/main.js && electron .",
+    "electron:prod": "electron .",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "package": "electron-builder",
+    "package:mac": "electron-builder --mac",
+    "package:win": "electron-builder --win"
+  },
+  "keywords": [
+    "electron",
+    "typescript",
+    "keyboard",
+    "typing-game",
+    "kindergarten",
+    "multi-team"
+  ],
+  "author": "Takatomo Ezo",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.19",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "concurrently": "^8.2.2",
+    "electron": "^28.2.6",
+    "electron-builder": "^24.9.1",
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "rimraf": "^5.0.5",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.3.3",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "node-hid": "^3.0.0"
+  },
+  "build": {
+    "appId": "com.ezotaka.keyboard-game",
+    "productName": "Keyboard Game",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.games"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}
