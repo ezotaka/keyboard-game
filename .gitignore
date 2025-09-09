@@ -85,3 +85,6 @@ junit.xml
 # Application specific
 config/local.json
 assets/cache/
+
+# Serena files
+.serena/
