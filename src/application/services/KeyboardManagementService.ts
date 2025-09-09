@@ -6,6 +6,7 @@ import { Keyboard } from '@domain/entities/Keyboard';
 import { KeyboardId } from '@domain/value-objects/KeyboardId';
 import { KeyboardDetectionService } from '@domain/services/KeyboardDetectionService';
 import { DeviceChangeListener } from '@domain/repositories/KeyboardRepository';
+import { KeyboardConnectionState } from '@shared/types/keyboard.types';
 
 export interface KeyboardStatistics {
   totalKeyboards: number;
@@ -102,7 +103,7 @@ export class KeyboardManagementService implements DeviceChangeListener {
       productId,
       manufacturer,
       product,
-      connectionState: require('@shared/types/keyboard.types').KeyboardConnectionState.CONNECTED
+      connectionState: KeyboardConnectionState.CONNECTED
     });
     
     // Validate before registration

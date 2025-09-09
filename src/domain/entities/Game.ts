@@ -60,7 +60,7 @@ export class Game {
   }
 
   private generateId(): string {
-    return `game-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `game-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
   }
 
   // Getters

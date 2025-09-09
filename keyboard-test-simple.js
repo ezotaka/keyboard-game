@@ -39,7 +39,7 @@ const keyboards = devices.filter(device =>
 
 if (keyboards.length === 0) {
   console.log('❌ キーボードデバイスが見つかりませんでした');
-  console.log('💡 管理者権限で実行してください: sudo node keyboard-test-simple.js');
+  console.log('💡 キーボードデバイスへのアクセス権限が不足している可能性があります。udevルールの設定やデバイスファイルの権限を確認してください。');
   process.exit(1);
 }
 
