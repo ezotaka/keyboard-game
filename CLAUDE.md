@@ -119,6 +119,14 @@ feat(domain): add Game entity with basic properties
 - `feature/*`: 機能開発
 - `fix/*`: バグ修正
 
+### ブランチ運用ルール
+- **Issue着手時**: Linearの該当Issueについて適切なブランチを作成してそこで作業する
+  - ブランチ名は `feature/DEV-{Issue番号}-{簡潔な説明}` または `fix/DEV-{Issue番号}-{簡潔な説明}` の形式
+  - 例: `feature/DEV-15-game-entity-implementation`
+- **作業完了時**: GitHubのPull Requestを作成する
+  - PR作成時にLinear IssueとPRを関連付け
+  - PRのタイトルにIssue IDを含める
+
 ## サブエージェント活用方針
 
 ### 開発フェーズ別エージェント利用
