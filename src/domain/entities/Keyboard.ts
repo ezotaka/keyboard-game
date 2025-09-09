@@ -1,7 +1,7 @@
 // Keyboard Domain Entity - Green フェーズ実装
 
 import { KeyboardId } from '../value-objects/KeyboardId';
-import { KeyboardConnectionState } from '@shared/types/keyboard.types';
+import { KeyboardConnectionState } from '../../shared/types/keyboard.types';
 
 export interface KeyboardConstructorProps {
   id: KeyboardId;

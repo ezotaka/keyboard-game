@@ -18,6 +18,7 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "demo:keyboard": "npm run build:main && node dist/demo/keyboard-test.js",
+    "demo:game": "npx ts-node --project tsconfig.main.json demo/game-logic-demo.ts",
     "package": "electron-builder",
     "package:mac": "electron-builder --mac",
     "package:win": "electron-builder --win"
