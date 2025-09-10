@@ -141,13 +141,15 @@ describe('Application', () => {
             application.initialize();
             
             // whenReady コールバックを実行
-            const calls = mockApp.whenReady.mock.calls;
+            const calls = mockApp.whenReady.mock.calls as any[];
             expect(calls.length).toBeGreaterThan(0);
             
-            const whenReadyCallback = calls[0][0];
+            const whenReadyCallback = calls[0]?.[0] as (() => Promise<void>) | undefined;
             expect(whenReadyCallback).toBeDefined();
             
-            await whenReadyCallback();
+            if (typeof whenReadyCallback === 'function') {
+                await whenReadyCallback();
+            }
 
             expect(mockBrowserWindow).toHaveBeenCalledWith({
                 width: 1200,
@@ -173,11 +175,11 @@ describe('Application', () => {
             application.initialize();
             
             // whenReady コールバックを実行
-            const calls = mockApp.whenReady.mock.calls;
+            const calls = mockApp.whenReady.mock.calls as any[];
             expect(calls.length).toBeGreaterThan(0);
             
-            const whenReadyCallback = calls[0][0];
-            if (whenReadyCallback) {
+            const whenReadyCallback = calls[0]?.[0] as (() => Promise<void>) | undefined;
+            if (typeof whenReadyCallback === 'function') {
                 await whenReadyCallback();
                 expect(mockWindow.loadFile).toHaveBeenCalledWith('index.html');
             }
@@ -199,11 +201,11 @@ describe('Application', () => {
             application.initialize();
             
             // whenReady コールバックを実行
-            const calls = mockApp.whenReady.mock.calls;
+            const calls = mockApp.whenReady.mock.calls as any[];
             expect(calls.length).toBeGreaterThan(0);
             
-            const whenReadyCallback = calls[0][0];
-            if (whenReadyCallback) {
+            const whenReadyCallback = calls[0]?.[0] as (() => Promise<void>) | undefined;
+            if (typeof whenReadyCallback === 'function') {
                 await whenReadyCallback();
                 expect(mockWindow.webContents.openDevTools).toHaveBeenCalled();
             }

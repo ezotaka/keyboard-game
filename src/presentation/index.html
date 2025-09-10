@@ -19,47 +19,130 @@
             <!-- ゲーム設定画面 -->
             <section id="setup-screen" class="screen active">
                 <div class="setup-panel">
-                    <h2>ゲーム設定</h2>
+                    <div class="setup-header">
+                        <h2>ゲーム設定</h2>
+                        <div class="setup-controls">
+                            <button id="save-config-btn" class="btn btn-secondary">設定保存</button>
+                            <button id="load-config-btn" class="btn btn-secondary">設定読込</button>
+                        </div>
+                    </div>
                     
-                    <div class="setting-group">
-                        <label for="team-count">チーム数:</label>
-                        <select id="team-count" class="setting-input">
-                            <option value="2">2チーム</option>
-                            <option value="3">3チーム</option>
-                            <option value="4">4チーム</option>
-                            <option value="5">5チーム</option>
-                            <option value="6">6チーム</option>
-                            <option value="7">7チーム</option>
-                            <option value="8">8チーム</option>
-                        </select>
-                    </div>
-
-                    <div class="setting-group">
-                        <label for="difficulty">難易度:</label>
-                        <select id="difficulty" class="setting-input">
-                            <option value="easy">やさしい</option>
-                            <option value="normal">ふつう</option>
-                            <option value="hard">むずかしい</option>
-                        </select>
-                    </div>
-
-                    <div class="setting-group">
-                        <h3>キーボード検知状況</h3>
-                        <div id="keyboard-list" class="keyboard-list">
-                            <div class="keyboard-item">
-                                <span class="keyboard-name">Apple Magic Keyboard</span>
-                                <span class="keyboard-status connected">接続中</span>
+                    <!-- 基本設定 -->
+                    <div class="settings-section">
+                        <h3>基本設定</h3>
+                        <div class="settings-grid">
+                            <div class="setting-group">
+                                <label for="config-name">設定名:</label>
+                                <input type="text" id="config-name" class="setting-input" placeholder="設定名を入力">
                             </div>
-                            <div class="keyboard-item">
-                                <span class="keyboard-name">外付けキーボード</span>
-                                <span class="keyboard-status connected">接続中</span>
+                            
+                            <div class="setting-group">
+                                <label for="team-count">チーム数:</label>
+                                <select id="team-count" class="setting-input">
+                                    <option value="2">2チーム</option>
+                                    <option value="3">3チーム</option>
+                                    <option value="4">4チーム</option>
+                                    <option value="5">5チーム</option>
+                                    <option value="6">6チーム</option>
+                                    <option value="7">7チーム</option>
+                                    <option value="8">8チーム</option>
+                                </select>
+                            </div>
+
+                            <div class="setting-group">
+                                <label for="difficulty">難易度:</label>
+                                <select id="difficulty" class="setting-input">
+                                    <option value="easy">やさしい</option>
+                                    <option value="normal">ふつう</option>
+                                    <option value="hard">むずかしい</option>
+                                </select>
+                            </div>
+
+                            <div class="setting-group">
+                                <label for="game-duration">ゲーム時間:</label>
+                                <select id="game-duration" class="setting-input">
+                                    <option value="30">30秒</option>
+                                    <option value="60" selected>60秒</option>
+                                    <option value="90">90秒</option>
+                                    <option value="120">120秒</option>
+                                    <option value="180">180秒</option>
+                                </select>
+                            </div>
+
+                            <div class="setting-group">
+                                <label for="word-category">お題カテゴリ:</label>
+                                <select id="word-category" class="setting-input">
+                                    <option value="mixed">ミックス</option>
+                                    <option value="animals">動物</option>
+                                    <option value="foods">食べ物</option>
+                                    <option value="colors">色</option>
+                                    <option value="nature">自然</option>
+                                    <option value="family">家族</option>
+                                    <option value="school">学校</option>
+                                </select>
                             </div>
                         </div>
                     </div>
 
-                    <button id="start-game-btn" class="btn btn-primary btn-large">
-                        ゲーム開始
-                    </button>
+                    <!-- チーム設定 -->
+                    <div class="settings-section">
+                        <h3>チーム設定</h3>
+                        <div id="team-settings" class="team-settings">
+                            <!-- 動的に生成 -->
+                        </div>
+                    </div>
+
+                    <!-- キーボード設定 -->
+                    <div class="settings-section">
+                        <h3>キーボード設定</h3>
+                        <div class="keyboard-section">
+                            <div class="keyboard-status">
+                                <span id="keyboard-count">0</span>台のキーボードが検知されています
+                                <button id="refresh-keyboards-btn" class="btn btn-small">再検索</button>
+                            </div>
+                            <div id="keyboard-assignment" class="keyboard-assignment">
+                                <!-- 動的に生成 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 音響設定 -->
+                    <div class="settings-section">
+                        <h3>音響設定</h3>
+                        <div class="sound-settings">
+                            <div class="setting-group">
+                                <label for="master-volume">音量:</label>
+                                <input type="range" id="master-volume" class="volume-slider" min="0" max="100" value="70">
+                                <span id="volume-display">70%</span>
+                            </div>
+                            <div class="sound-toggles">
+                                <label class="toggle-label">
+                                    <input type="checkbox" id="sound-effects" checked>
+                                    <span class="toggle-slider"></span>
+                                    効果音
+                                </label>
+                                <label class="toggle-label">
+                                    <input type="checkbox" id="typing-sound" checked>
+                                    <span class="toggle-slider"></span>
+                                    タイピング音
+                                </label>
+                                <label class="toggle-label">
+                                    <input type="checkbox" id="background-music">
+                                    <span class="toggle-slider"></span>
+                                    BGM
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setup-actions">
+                        <button id="start-game-btn" class="btn btn-primary btn-large">
+                            ゲーム開始
+                        </button>
+                        <div class="setup-status" id="setup-status">
+                            設定を確認してください
+                        </div>
+                    </div>
                 </div>
             </section>
 
