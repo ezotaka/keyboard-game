@@ -1,4 +1,5 @@
 import { SoundManager, SoundType } from './sounds/sound-manager';
+import '../types/window';
 
 interface GameState {
     currentScreen: 'setup' | 'game' | 'result';
@@ -46,15 +47,36 @@ class GameUI {
             gameRunning: false
         };
         
-        this.soundManager = new SoundManager();
+        try {
+            this.soundManager = new SoundManager();
+            console.log('SoundManager初期化成功');
+        } catch (error) {
+            console.error('SoundManager初期化エラー:', error);
+            // ダミーのサウンドマネージャーを作成
+            this.soundManager = {
+                playSound: (type: any, volume?: number) => {
+                    console.log('ダミーサウンド:', type, volume);
+                }
+            } as any;
+        }
         this.initializeUI();
         this.setupEventListeners();
-        this.loadKeyboards();
+        
+        // キーボード読み込みを少し遅延させる
+        setTimeout(() => {
+            this.loadKeyboards();
+        }, 100);
     }
 
     private initializeUI(): void {
+        console.log('initializeUI呼び出し');
         this.showScreen('setup');
         this.updateGameStatus('準備中');
+        
+        // 初期状態でローディング表示を確認
+        const keyboardList = document.getElementById('keyboard-list');
+        console.log('初期keyboard-list要素:', keyboardList);
+        console.log('初期keyboard-list内容:', keyboardList?.innerHTML);
     }
 
     private setupEventListeners(): void {
@@ -78,8 +100,14 @@ class GameUI {
 
     private async loadKeyboards(): Promise<void> {
         try {
+            console.log('loadKeyboards関数が呼ばれました');
+            console.log('keyboardGameAPI利用可能:', !!window.keyboardGameAPI);
+            
             if (window.keyboardGameAPI) {
+                console.log('キーボードデータを取得中...');
                 const keyboardData = await window.keyboardGameAPI.getKeyboards();
+                console.log('取得したキーボードデータ:', keyboardData);
+                
                 this.keyboards = keyboardData.map(kb => ({
                     id: kb.id,
                     name: kb.name || `キーボード ${kb.id}`,
@@ -87,24 +115,67 @@ class GameUI {
                     assigned: false
                 }));
                 
+                console.log('変換後のキーボード配列:', this.keyboards);
+                this.updateKeyboardList();
+                this.updateTeamAssignment();
+            } else {
+                console.log('keyboardGameAPIが利用できません - モックデータを使用');
+                // フォールバック: モックキーボードデータを直接設定
+                this.keyboards = [
+                    {
+                        id: 'mock-keyboard-1',
+                        name: 'Apple Magic Keyboard',
+                        connected: true,
+                        assigned: false
+                    },
+                    {
+                        id: 'mock-keyboard-2',
+                        name: '外付けキーボード',
+                        connected: true,
+                        assigned: false
+                    }
+                ];
                 this.updateKeyboardList();
                 this.updateTeamAssignment();
             }
         } catch (error) {
             console.error('キーボード取得エラー:', error);
+            console.log('エラーのためモックデータを使用');
+            // エラー時のフォールバック
+            this.keyboards = [
+                {
+                    id: 'mock-keyboard-1',
+                    name: 'Apple Magic Keyboard',
+                    connected: true,
+                    assigned: false
+                },
+                {
+                    id: 'mock-keyboard-2',
+                    name: '外付けキーボード',
+                    connected: true,
+                    assigned: false
+                }
+            ];
             this.updateKeyboardList();
+            this.updateTeamAssignment();
         }
     }
 
     private updateKeyboardList(): void {
+        console.log('updateKeyboardList呼び出し - キーボード数:', this.keyboards.length);
         const keyboardList = document.getElementById('keyboard-list');
-        if (!keyboardList) return;
+        if (!keyboardList) {
+            console.log('keyboard-list要素が見つかりません');
+            return;
+        }
 
         if (this.keyboards.length === 0) {
+            console.log('キーボードが0個のため「見つかりません」を表示');
             keyboardList.innerHTML = '<div class="loading">キーボードが見つかりません</div>';
             return;
         }
 
+        console.log('キーボードリスト表示中:', this.keyboards);
         keyboardList.innerHTML = this.keyboards.map(keyboard => `
             <div class="keyboard-item">
                 <span class="keyboard-name">${keyboard.name}</span>
@@ -463,18 +534,23 @@ class GameUI {
 }
 
 // アプリケーション初期化
-document.addEventListener('DOMContentLoaded', () => {
-    new GameUI();
-});
+console.log('renderer.js読み込み開始');
 
-// TypeScript 型定義を window に追加
-declare global {
-    interface Window {
-        keyboardGameAPI?: {
-            onKeyboardInput: (callback: (data: any) => void) => void;
-            startGame: (config: any) => Promise<void>;
-            stopGame: () => Promise<void>;
-            getKeyboards: () => Promise<any[]>;
-        };
+function initializeApp() {
+    console.log('initializeApp関数実行');
+    try {
+        const gameUI = new GameUI();
+        console.log('GameUIインスタンス作成成功:', gameUI);
+    } catch (error) {
+        console.error('GameUI初期化エラー:', error);
     }
 }
+
+if (document.readyState === 'loading') {
+    console.log('DOMローディング中 - イベントリスナー登録');
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    console.log('DOMすでに準備完了 - 即座に初期化');
+    initializeApp();
+}
+
