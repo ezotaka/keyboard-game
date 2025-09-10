@@ -1,6 +1,6 @@
 import { ISoundManager } from './sound-manager-interface';
 import { SeededRandom } from '../../shared/utils/seeded-random';
-import '../../types/audio';
+import '../../types/audio.d.ts';
 
 export enum SoundType {
     SUCCESS = 'success',

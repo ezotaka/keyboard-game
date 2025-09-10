@@ -1,7 +1,7 @@
 import { SoundManager, SoundType } from './sounds/sound-manager';
 import { ISoundManager } from './sounds/sound-manager-interface';
 import { NullSoundManager } from './sounds/null-sound-manager';
-import '../types/window';
+import '../types/window.d.ts';
 
 interface GameState {
     currentScreen: 'setup' | 'game' | 'result';
