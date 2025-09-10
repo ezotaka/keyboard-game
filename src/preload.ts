@@ -1,18 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-export interface KeyboardGameAPI {
-    onKeyboardInput: (callback: (data: any) => void) => void;
-    startGame: (config: any) => Promise<void>;
-    stopGame: () => Promise<void>;
-    getKeyboards: () => Promise<any[]>;
-}
-
-const keyboardGameAPI: KeyboardGameAPI = {
-    onKeyboardInput: (callback) => {
+const keyboardGameAPI = {
+    onKeyboardInput: (callback: (data: any) => void) => {
         ipcRenderer.on('keyboard-input', (_event, data) => callback(data));
     },
     
-    startGame: async (config) => {
+    startGame: async (config: any) => {
         return ipcRenderer.invoke('start-game', config);
     },
     
