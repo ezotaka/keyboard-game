@@ -1,3 +1,7 @@
+import { ISoundManager } from './sound-manager-interface';
+import { SeededRandom } from '../../shared/utils/seeded-random';
+import '../../types/audio';
+
 export enum SoundType {
     SUCCESS = 'success',
     ERROR = 'error',
@@ -8,7 +12,7 @@ export enum SoundType {
     WINNER = 'winner'
 }
 
-export class SoundManager {
+export class SoundManager implements ISoundManager {
     private audioContext: AudioContext | null = null;
     private sounds: Map<SoundType, AudioBuffer> = new Map();
     private enabled: boolean = true;
@@ -20,7 +24,12 @@ export class SoundManager {
 
     private initAudioContext(): void {
         try {
-            this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) {
+                this.audioContext = new AudioCtx();
+            } else {
+                throw new Error('Web Audio API not supported');
+            }
         } catch (error) {
             console.warn('Web Audio API not supported:', error);
             this.enabled = false;
@@ -169,9 +178,12 @@ export class SoundManager {
         const buffer = this.audioContext!.createBuffer(1, sampleRate * duration, sampleRate);
         const data = buffer.getChannelData(0);
 
+        // シード付きランダムで決定的な音声生成
+        const random = new SeededRandom(12345); // 固定シード
+        const freq = 1000 + random.nextInRange(0, 200); // 決定的な周波数
+
         for (let i = 0; i < data.length; i++) {
             const t = i / sampleRate;
-            const freq = 1000 + Math.random() * 200; // ランダムな高音
             const envelope = Math.exp(-t * 50);
             
             data[i] = envelope * 0.1 * Math.sin(2 * Math.PI * freq * t);

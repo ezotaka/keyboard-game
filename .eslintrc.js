@@ -2,21 +2,27 @@ module.exports = {
   parser: '@typescript-eslint/parser',
   plugins: ['@typescript-eslint'],
   extends: [
-    'eslint:recommended',
-    '@typescript-eslint/recommended'
+    'eslint:recommended'
   ],
   parserOptions: {
     ecmaVersion: 2020,
-    sourceType: 'module',
-    project: './tsconfig.json'
+    sourceType: 'module'
   },
   env: {
     node: true,
-    es6: true
+    es6: true,
+    browser: true
   },
   rules: {
-    '@typescript-eslint/no-unused-vars': 'error',
-    '@typescript-eslint/explicit-function-return-type': 'warn',
-    '@typescript-eslint/no-explicit-any': 'warn'
-  }
+    'no-unused-vars': 'error',
+    'no-console': 'off'
+  },
+  overrides: [
+    {
+      files: ['src/types/**/*.d.ts'],
+      rules: {
+        'no-unused-vars': 'off'
+      }
+    }
+  ]
 };

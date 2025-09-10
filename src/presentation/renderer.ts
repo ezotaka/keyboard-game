@@ -1,4 +1,6 @@
 import { SoundManager, SoundType } from './sounds/sound-manager';
+import { ISoundManager } from './sounds/sound-manager-interface';
+import { NullSoundManager } from './sounds/null-sound-manager';
 import '../types/window';
 
 interface GameState {
@@ -30,8 +32,8 @@ interface Keyboard {
 class GameUI {
     private gameState: GameState;
     private keyboards: Keyboard[] = [];
-    private gameTimer: NodeJS.Timeout | null = null;
-    private soundManager: SoundManager;
+    private gameTimer: number | null = null;
+    private soundManager: ISoundManager;
     
     private readonly TEAM_COLORS = [
         '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4',
@@ -52,18 +54,14 @@ class GameUI {
             console.log('SoundManager初期化成功');
         } catch (error) {
             console.error('SoundManager初期化エラー:', error);
-            // ダミーのサウンドマネージャーを作成
-            this.soundManager = {
-                playSound: (type: any, volume?: number) => {
-                    console.log('ダミーサウンド:', type, volume);
-                }
-            } as any;
+            // 適切なNullSoundManagerを使用
+            this.soundManager = new NullSoundManager();
         }
         this.initializeUI();
         this.setupEventListeners();
         
         // キーボード読み込みを少し遅延させる
-        setTimeout(() => {
+        window.setTimeout(() => {
             this.loadKeyboards();
         }, 100);
     }
@@ -325,7 +323,6 @@ class GameUI {
 
     private updateTeamProgress(team: Team): void {
         const wordLength = this.gameState.currentWord.length;
-        const inputLength = team.currentInput.length;
         const correctLength = this.getCorrectInputLength(team.currentInput);
         
         team.progress = wordLength > 0 ? (correctLength / wordLength) * 100 : 0;
@@ -375,7 +372,7 @@ class GameUI {
         const teamPanel = document.querySelector(`.team-${team.id}`) as HTMLElement;
         if (teamPanel) {
             teamPanel.classList.add('bounce');
-            setTimeout(() => {
+            window.setTimeout(() => {
                 teamPanel.classList.remove('bounce');
             }, 1000);
         }
@@ -399,7 +396,7 @@ class GameUI {
     }
 
     private startGameTimer(): void {
-        this.gameTimer = setInterval(() => {
+        this.gameTimer = window.setInterval(() => {
             this.gameState.timeRemaining--;
             this.updateTimer();
             
@@ -428,7 +425,7 @@ class GameUI {
         this.gameState.gameRunning = false;
         
         if (this.gameTimer) {
-            clearInterval(this.gameTimer);
+            window.clearInterval(this.gameTimer);
             this.gameTimer = null;
         }
         
@@ -513,7 +510,7 @@ class GameUI {
             countdownElement.textContent = count.toString();
             document.body.appendChild(countdownElement);
 
-            const interval = setInterval(() => {
+            const interval = window.setInterval(() => {
                 this.soundManager.playSound(SoundType.COUNTDOWN);
                 count--;
                 
@@ -521,9 +518,9 @@ class GameUI {
                     countdownElement.textContent = count.toString();
                 } else {
                     countdownElement.textContent = 'スタート!';
-                    clearInterval(interval);
+                    window.clearInterval(interval);
                     
-                    setTimeout(() => {
+                    window.setTimeout(() => {
                         document.body.removeChild(countdownElement);
                         resolve();
                     }, 500);

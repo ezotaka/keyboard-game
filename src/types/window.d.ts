@@ -1,4 +1,4 @@
-interface KeyboardGameAPI {
+declare interface KeyboardGameAPI {
     onKeyboardInput: (callback: (data: any) => void) => void;
     startGame: (config: any) => Promise<void>;
     stopGame: () => Promise<void>;

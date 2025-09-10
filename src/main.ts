@@ -2,6 +2,10 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import * as HID from 'node-hid';
 
+// HID定数の定義
+const KEYBOARD_USAGE = 6;
+const GENERIC_DESKTOP_USAGE_PAGE = 1;
+
 interface KeyboardInfo {
     id: string;
     name: string;
@@ -91,7 +95,7 @@ class Application {
             const devices = HID.devices();
             const keyboards = devices
                 .filter((device: any) => 
-                    device.usage === 6 && device.usagePage === 1 // キーボード
+                    device.usage === KEYBOARD_USAGE && device.usagePage === GENERIC_DESKTOP_USAGE_PAGE
                 )
                 .map((device: any, index: number) => ({
                     id: `keyboard-${device.vendorId}-${device.productId}-${index}`,
