@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>キーボードタイピングゲーム</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div id="app">
+        <header class="game-header">
+            <h1>🎮 キーボードタイピングゲーム 🎮</h1>
+            <div class="game-status">
+                <span id="game-state">準備中</span>
+            </div>
+        </header>
+
+        <main class="game-container">
+            <!-- ゲーム設定画面 -->
+            <section id="setup-screen" class="screen active">
+                <div class="setup-panel">
+                    <h2>ゲーム設定</h2>
+                    
+                    <div class="setting-group">
+                        <label for="team-count">チーム数:</label>
+                        <select id="team-count" class="setting-input">
+                            <option value="2">2チーム</option>
+                            <option value="3">3チーム</option>
+                            <option value="4">4チーム</option>
+                            <option value="5">5チーム</option>
+                            <option value="6">6チーム</option>
+                            <option value="7">7チーム</option>
+                            <option value="8">8チーム</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="difficulty">難易度:</label>
+                        <select id="difficulty" class="setting-input">
+                            <option value="easy">やさしい</option>
+                            <option value="normal">ふつう</option>
+                            <option value="hard">むずかしい</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <h3>キーボード検知状況</h3>
+                        <div id="keyboard-list" class="keyboard-list">
+                            <div class="keyboard-item">
+                                <span class="keyboard-name">Apple Magic Keyboard</span>
+                                <span class="keyboard-status connected">接続中</span>
+                            </div>
+                            <div class="keyboard-item">
+                                <span class="keyboard-name">外付けキーボード</span>
+                                <span class="keyboard-status connected">接続中</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="start-game-btn" class="btn btn-primary btn-large">
+                        ゲーム開始
+                    </button>
+                </div>
+            </section>
+
+            <!-- ゲーム画面 -->
+            <section id="game-screen" class="screen">
+                <div class="game-info">
+                    <div class="current-word">
+                        <h2 id="target-word">単語が表示されます</h2>
+                    </div>
+                    <div class="game-timer">
+                        <span id="timer">60</span>秒
+                    </div>
+                </div>
+
+                <div id="teams-container" class="teams-container">
+                    <!-- チーム表示エリア（動的に生成） -->
+                </div>
+            </section>
+
+            <!-- 結果画面 -->
+            <section id="result-screen" class="screen">
+                <div class="result-panel">
+                    <h2>🏆 ゲーム結果 🏆</h2>
+                    <div id="results-list" class="results-list">
+                        <!-- 結果表示（動的に生成） -->
+                    </div>
+                    <button id="restart-btn" class="btn btn-primary btn-large">
+                        もう一度遊ぶ
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="renderer.js"></script>
+    <script>
+        // フォールバックスクリプト：メインのJSが動作しない場合のバックアップ
+        document.addEventListener('DOMContentLoaded', function() {
+            const startBtn = document.getElementById('start-game-btn');
+            if (startBtn && startBtn.disabled) {
+                // ボタンが無効な場合は有効にする
+                startBtn.disabled = false;
+                console.log('フォールバック: ゲーム開始ボタンを有効化しました');
+            }
+            
+            // ボタンクリックイベントを追加（まだ追加されていない場合）
+            if (startBtn && !startBtn.onclick) {
+                startBtn.onclick = function() {
+                    alert('デモモード: ゲームを開始します！\n\n実際のゲーム機能を実装するには、renderer.jsの読み込みが必要です。');
+                };
+            }
+        });
+    </script>
+</body>
+</html>
