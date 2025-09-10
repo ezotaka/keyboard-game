@@ -1,7 +1,7 @@
 import { SoundManager, SoundType } from './sounds/sound-manager';
 import { ISoundManager } from './sounds/sound-manager-interface';
 import { NullSoundManager } from './sounds/null-sound-manager';
-import '../types/window';
+import '../types/window.d';
 
 interface GameState {
     currentScreen: 'setup' | 'game' | 'result';
@@ -29,7 +29,7 @@ interface Keyboard {
     teamId?: number;
 }
 
-class GameUI {
+export class GameUI {
     private gameState: GameState;
     private keyboards: Keyboard[] = [];
     private gameTimer: number | null = null;
