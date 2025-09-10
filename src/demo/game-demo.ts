@@ -1,13 +1,13 @@
 // Simple game demo that demonstrates keyboard functionality without complex dependencies
 
-interface MockKeyboard {
+export interface MockKeyboard {
     id: string;
     name: string;
     connected: boolean;
     assigned: boolean;
 }
 
-class SimpleGameDemo {
+export class SimpleGameDemo {
     private keyboards: MockKeyboard[] = [];
 
     constructor() {
@@ -77,7 +77,7 @@ class SimpleGameDemo {
 console.log('=== Simple Game Demo 開始 ===');
 console.log('DOM readyState:', document.readyState);
 
-function initDemo() {
+export function initDemo() {
     console.log('デモ初期化関数実行');
     try {
         new SimpleGameDemo();

@@ -14,11 +14,15 @@ interface KeyboardInfo {
     path: string;
 }
 
-class Application {
+export class Application {
     private mainWindow: BrowserWindow | null = null;
     private detectedKeyboards: KeyboardInfo[] = [];
 
     constructor() {
+        // テスト用に初期化を遅延
+    }
+
+    public initialize(): void {
         this.initApp();
         this.setupIPC();
     }
@@ -138,4 +142,8 @@ class Application {
     }
 }
 
-new Application();
+// Production initialization
+if (require.main === module) {
+    const app = new Application();
+    app.initialize();
+}

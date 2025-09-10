@@ -8,7 +8,7 @@ interface KeyboardInfo {
     path: string;
 }
 
-function getKeyboards(): KeyboardInfo[] {
+export function getKeyboards(): KeyboardInfo[] {
     try {
         console.log('HIDデバイス検知を開始...');
         const devices = HID.devices();
@@ -45,7 +45,7 @@ function getKeyboards(): KeyboardInfo[] {
     }
 }
 
-function getMockKeyboards(): KeyboardInfo[] {
+export function getMockKeyboards(): KeyboardInfo[] {
     return [
         {
             id: 'mock-keyboard-1',
