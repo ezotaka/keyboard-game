@@ -704,13 +704,9 @@ class GameUI {
         if (inputElement) {
             inputElement.textContent = team.currentInput;
             
-            // 日本語入力の正規化チェック
+            // 簡単な正規化（英単語用）
             const normalizeText = (text: string): string => {
-                return text
-                    .normalize('NFC')  // Unicode正規化
-                    .replace(/[\u3099\u309A]/g, '')  // 濁点・半濁点除去
-                    .toLowerCase()
-                    .trim();
+                return text.toLowerCase().trim();
             };
 
             const normalizedInput = normalizeText(team.currentInput);
@@ -743,13 +739,9 @@ class GameUI {
     }
 
     private getCorrectInputLength(input: string): number {
-        // 日本語入力の正規化
+        // 簡単な正規化（英単語用）
         const normalizeText = (text: string): string => {
-            return text
-                .normalize('NFC')  // Unicode正規化
-                .replace(/[\u3099\u309A]/g, '')  // 濁点・半濁点除去
-                .toLowerCase()
-                .trim();
+            return text.toLowerCase().trim();
         };
 
         const normalizedInput = normalizeText(input);
@@ -767,13 +759,9 @@ class GameUI {
     }
 
     private checkWord(team: Team): void {
-        // 日本語入力の正規化
+        // 簡単な正規化（英単語用）
         const normalizeText = (text: string): string => {
-            return text
-                .normalize('NFC')  // Unicode正規化
-                .replace(/[\u3099\u309A]/g, '')  // 濁点・半濁点除去
-                .toLowerCase()
-                .trim();
+            return text.toLowerCase().trim();
         };
 
         const normalizedInput = normalizeText(team.currentInput);
@@ -810,16 +798,16 @@ class GameUI {
     }
 
     private getRandomWord(): string {
-        // カテゴリ別の単語を定義
+        // 英単語カテゴリを定義（保育園児向け簡単な単語）
         const wordCategories: Record<string, string[]> = {
-            animals: ['ねこ', 'いぬ', 'うさぎ', 'ぞう', 'きりん', 'らいおん', 'ぱんだ', 'とら'],
-            foods: ['りんご', 'ばなな', 'いちご', 'ぶどう', 'みかん', 'おにぎり', 'すし', 'らーめん'],
-            colors: ['あか', 'あお', 'きいろ', 'みどり', 'しろ', 'くろ', 'むらさき', 'おれんじ'],
-            nature: ['はな', 'つき', 'ほし', 'そら', 'うみ', 'やま', 'みず', 'かぜ'],
-            family: ['おかあさん', 'おとうさん', 'おにいさん', 'おねえさん', 'いもうと', 'おとうと'],
-            school: ['がっこう', 'せんせい', 'ほん', 'えんぴつ', 'つくえ', 'いす', 'こくばん'],
-            mixed: ['ねこ', 'いぬ', 'うさぎ', 'ぞう', 'きりん', 'りんご', 'ばなな', 'いちご', 'ぶどう', 'みかん',
-                   'あか', 'あお', 'きいろ', 'みどり', 'しろ', 'はな', 'つき', 'ほし', 'そら', 'うみ']
+            animals: ['cat', 'dog', 'fish', 'bird', 'bear', 'lion', 'fox', 'pig'],
+            foods: ['apple', 'banana', 'cake', 'milk', 'bread', 'rice', 'egg', 'meat'],
+            colors: ['red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'orange'],
+            nature: ['sun', 'moon', 'star', 'tree', 'flower', 'water', 'wind', 'rain'],
+            family: ['mom', 'dad', 'baby', 'family', 'home', 'love'],
+            school: ['book', 'pen', 'chair', 'desk', 'bag', 'toy', 'game'],
+            mixed: ['cat', 'dog', 'fish', 'bird', 'apple', 'cake', 'red', 'blue', 'sun', 'moon',
+                   'book', 'toy', 'home', 'love', 'tree', 'water', 'happy', 'big', 'small', 'good']
         };
 
         const category = this.currentConfig?.wordCategory || 'mixed';
