@@ -1,6 +1,9 @@
 import { SoundManager, SoundType } from './sounds/sound-manager';
 import { ISoundManager } from './sounds/sound-manager-interface';
 import { NullSoundManager } from './sounds/null-sound-manager';
+import { GameConfig } from '../domain/entities/GameConfig.js';
+import { GameConfigRepository } from '../domain/repositories/GameConfigRepository.js';
+import { DifficultyLevel, WordCategory } from '../shared/types/GameConfig.js';
 import '../types/window.d.ts';
 
 interface GameState {
@@ -32,8 +35,10 @@ interface Keyboard {
 class GameUI {
     private gameState: GameState;
     private keyboards: Keyboard[] = [];
-    private gameTimer: number | null = null;
+    private gameTimer: NodeJS.Timeout | null = null;
     private soundManager: ISoundManager;
+    private currentConfig: GameConfig | null = null; // 現在の設定
+    private configRepository: GameConfigRepository | null = null; // 設定リポジトリ
     
     private readonly TEAM_COLORS = [
         '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4',
@@ -57,13 +62,297 @@ class GameUI {
             // 適切なNullSoundManagerを使用
             this.soundManager = new NullSoundManager();
         }
+        
+        // 設定リポジトリの初期化
+        this.initializeConfigRepository();
+        
         this.initializeUI();
         this.setupEventListeners();
         
         // キーボード読み込みを少し遅延させる
-        window.setTimeout(() => {
+        setTimeout(() => {
             this.loadKeyboards();
         }, 100);
+    }
+
+    private async initializeConfigRepository(): Promise<void> {
+        try {
+            // 動的インポートでリポジトリを読み込み
+            const { LocalStorageGameConfigRepository } = await import('../infrastructure/persistence/LocalStorageGameConfigRepository.js');
+            this.configRepository = new LocalStorageGameConfigRepository();
+            
+            // デフォルト設定をロード
+            await this.loadDefaultConfig();
+        } catch (error) {
+            console.error('設定リポジトリの初期化に失敗:', error);
+        }
+    }
+
+    private async loadDefaultConfig(): Promise<void> {
+        try {
+            if (this.configRepository) {
+                const { GameConfig } = await import('../domain/entities/GameConfig.js');
+                this.currentConfig = new GameConfig();
+                this.applyConfigToUI();
+            }
+        } catch (error) {
+            console.error('デフォルト設定の読み込みに失敗:', error);
+        }
+    }
+
+    private applyConfigToUI(): void {
+        if (!this.currentConfig) return;
+
+        // 基本設定の適用
+        const configNameInput = document.getElementById('config-name') as HTMLInputElement;
+        const teamCountSelect = document.getElementById('team-count') as HTMLSelectElement;
+        const difficultySelect = document.getElementById('difficulty') as HTMLSelectElement;
+        const gameDurationSelect = document.getElementById('game-duration') as HTMLSelectElement;
+        const wordCategorySelect = document.getElementById('word-category') as HTMLSelectElement;
+        
+        if (configNameInput) configNameInput.value = this.currentConfig.name;
+        if (teamCountSelect) teamCountSelect.value = this.currentConfig.teamCount.toString();
+        if (difficultySelect) difficultySelect.value = this.currentConfig.difficulty;
+        if (gameDurationSelect) gameDurationSelect.value = this.currentConfig.gameDuration.toString();
+        if (wordCategorySelect) wordCategorySelect.value = this.currentConfig.wordCategory;
+
+        // 音響設定の適用
+        const masterVolumeSlider = document.getElementById('master-volume') as HTMLInputElement;
+        const soundEffectsCheckbox = document.getElementById('sound-effects') as HTMLInputElement;
+        const typingSoundCheckbox = document.getElementById('typing-sound') as HTMLInputElement;
+        const backgroundMusicCheckbox = document.getElementById('background-music') as HTMLInputElement;
+        
+        const soundSettings = this.currentConfig.soundSettings;
+        if (masterVolumeSlider) {
+            masterVolumeSlider.value = (soundSettings.masterVolume * 100).toString();
+            this.updateVolumeDisplay();
+        }
+        if (soundEffectsCheckbox) soundEffectsCheckbox.checked = soundSettings.soundEffectsEnabled;
+        if (typingSoundCheckbox) typingSoundCheckbox.checked = soundSettings.typingSoundEnabled;
+        if (backgroundMusicCheckbox) backgroundMusicCheckbox.checked = soundSettings.backgroundMusicEnabled;
+
+        // チーム設定とキーボード割り当ての更新
+        this.updateTeamAssignment();
+        this.renderTeamSettings();
+        this.renderKeyboardAssignment();
+    }
+
+    private renderTeamSettings(): void {
+        const teamSettingsContainer = document.getElementById('team-settings');
+        if (!teamSettingsContainer || !this.currentConfig) return;
+
+        const teamSettings = this.currentConfig.teamSettings;
+        
+        teamSettingsContainer.innerHTML = teamSettings.map((team: any, index: number) => `
+            <div class="team-setting-item">
+                <div class="team-header">
+                    <div class="team-color-indicator" style="background-color: ${team.color}"></div>
+                    <input type="text" 
+                           class="team-name-input" 
+                           value="${team.name}"
+                           data-team-id="${team.id}"
+                           placeholder="チーム名を入力">
+                </div>
+                <div class="team-assignment">
+                    <label>割り当てキーボード:</label>
+                    <select class="keyboard-assignment-select" data-team-id="${team.id}">
+                        <option value="">キーボードを選択</option>
+                        ${this.keyboards.map(kb => `
+                            <option value="${kb.id}" ${team.assignedKeyboardId === kb.id ? 'selected' : ''}>
+                                ${kb.name}
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+            </div>
+        `).join('');
+
+        // イベントリスナーを追加
+        this.setupTeamSettingsEventListeners();
+    }
+
+    private renderKeyboardAssignment(): void {
+        const keyboardAssignmentContainer = document.getElementById('keyboard-assignment');
+        const keyboardCountElement = document.getElementById('keyboard-count');
+        
+        if (!keyboardAssignmentContainer) return;
+
+        // キーボード数の更新
+        if (keyboardCountElement) {
+            keyboardCountElement.textContent = this.keyboards.length.toString();
+        }
+
+        // キーボード一覧の表示
+        keyboardAssignmentContainer.innerHTML = this.keyboards.map(keyboard => {
+            const assignedTeam = this.currentConfig?.teamSettings.find((team: any) => 
+                team.assignedKeyboardId === keyboard.id
+            );
+            
+            return `
+                <div class="keyboard-item">
+                    <div class="keyboard-info">
+                        <span class="keyboard-name">${keyboard.name}</span>
+                        <span class="keyboard-status ${keyboard.connected ? 'connected' : 'disconnected'}">
+                            ${keyboard.connected ? '接続中' : '切断'}
+                        </span>
+                        ${assignedTeam ? `
+                            <span class="keyboard-status assigned">
+                                ${assignedTeam.name}に割り当て済み
+                            </span>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    private setupTeamSettingsEventListeners(): void {
+        // チーム名変更イベント
+        document.querySelectorAll('.team-name-input').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const target = e.target as HTMLInputElement;
+                const teamId = parseInt(target.dataset.teamId || '0');
+                this.updateTeamName(teamId, target.value);
+            });
+        });
+
+        // キーボード割り当て変更イベント
+        document.querySelectorAll('.keyboard-assignment-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const target = e.target as HTMLSelectElement;
+                const teamId = parseInt(target.dataset.teamId || '0');
+                this.updateKeyboardAssignment(teamId, target.value);
+            });
+        });
+    }
+
+    private updateTeamName(teamId: number, newName: string): void {
+        if (!this.currentConfig) return;
+        
+        try {
+            this.currentConfig = this.currentConfig.updateTeamName(teamId, newName);
+            this.updateSetupStatus();
+        } catch (error) {
+            console.error('チーム名の更新に失敗:', error);
+        }
+    }
+
+    private updateKeyboardAssignment(teamId: number, keyboardId: string): void {
+        if (!this.currentConfig) return;
+
+        try {
+            // 既存の割り当てをクリア
+            const updatedAssignments = this.keyboards.map(kb => ({
+                keyboardId: kb.id,
+                keyboardName: kb.name,
+                assignedTeamId: kb.id === keyboardId ? teamId : (
+                    this.currentConfig?.keyboardAssignments.find((a: any) => a.keyboardId === kb.id)?.assignedTeamId !== teamId 
+                        ? this.currentConfig?.keyboardAssignments.find((a: any) => a.keyboardId === kb.id)?.assignedTeamId 
+                        : undefined
+                ),
+                connected: kb.connected
+            }));
+
+            if (this.currentConfig) {
+                this.currentConfig = this.currentConfig.updateKeyboardAssignments(updatedAssignments);
+            }
+            this.renderTeamSettings();
+            this.renderKeyboardAssignment();
+            this.updateSetupStatus();
+        } catch (error) {
+            console.error('キーボード割り当ての更新に失敗:', error);
+        }
+    }
+
+    private updateVolumeDisplay(): void {
+        const volumeSlider = document.getElementById('master-volume') as HTMLInputElement;
+        const volumeDisplay = document.getElementById('volume-display');
+        
+        if (volumeSlider && volumeDisplay) {
+            volumeDisplay.textContent = `${volumeSlider.value}%`;
+        }
+    }
+
+    private updateSetupStatus(): void {
+        const setupStatus = document.getElementById('setup-status');
+        if (!setupStatus || !this.currentConfig) return;
+
+        const validation = this.currentConfig.isReadyForGame();
+        
+        setupStatus.className = 'setup-status';
+        if (validation.ready) {
+            setupStatus.classList.add('ready');
+            setupStatus.textContent = 'ゲーム開始準備完了！';
+        } else if (validation.issues.length > 0) {
+            setupStatus.classList.add('warning');
+            setupStatus.textContent = validation.issues[0];
+        } else {
+            setupStatus.classList.add('error');
+            setupStatus.textContent = '設定を確認してください';
+        }
+    }
+
+    private async saveCurrentConfig(): Promise<void> {
+        if (!this.currentConfig || !this.configRepository) {
+            alert('設定を保存できません');
+            return;
+        }
+
+        try {
+            const configNameInput = document.getElementById('config-name') as HTMLInputElement;
+            if (configNameInput && configNameInput.value.trim()) {
+                this.currentConfig = this.currentConfig.updateName(configNameInput.value.trim());
+            }
+
+            const { GameConfigManagementUseCase } = await import('../application/use-cases/GameConfigManagementUseCase.js');
+            const useCase = new GameConfigManagementUseCase(this.configRepository);
+            
+            await useCase.saveConfig(this.currentConfig);
+            alert('設定を保存しました');
+        } catch (error) {
+            console.error('設定の保存に失敗:', error);
+            alert('設定の保存に失敗しました');
+        }
+    }
+
+    private async loadConfig(): Promise<void> {
+        if (!this.configRepository) {
+            alert('設定を読み込めません');
+            return;
+        }
+
+        try {
+            const { GameConfigManagementUseCase } = await import('../application/use-cases/GameConfigManagementUseCase.js');
+            const useCase = new GameConfigManagementUseCase(this.configRepository);
+            
+            const configs = await useCase.getAllConfigs();
+            
+            if (configs.length === 0) {
+                alert('保存された設定がありません');
+                return;
+            }
+
+            // 簡単な選択UI（今後改善可能）
+            const configNames = configs.map((config, index) => 
+                `${index + 1}. ${config.config.name} (${new Date(config.config.createdAt).toLocaleDateString()})`
+            ).join('\n');
+            
+            const selection = prompt(`読み込む設定を選択してください:\n${configNames}\n\n数字を入力:`);
+            const selectedIndex = parseInt(selection || '0') - 1;
+            
+            if (selectedIndex >= 0 && selectedIndex < configs.length) {
+                const { GameConfig } = await import('../domain/entities/GameConfig.js');
+                this.currentConfig = new GameConfig(configs[selectedIndex].config);
+                this.applyConfigToUI();
+                
+                // 使用統計を更新
+                await useCase.useConfigForGame(configs[selectedIndex].id);
+                alert('設定を読み込みました');
+            }
+        } catch (error) {
+            console.error('設定の読み込みに失敗:', error);
+            alert('設定の読み込みに失敗しました');
+        }
     }
 
     private initializeUI(): void {
@@ -88,11 +377,110 @@ class GameUI {
 
         // チーム数変更
         const teamCountSelect = document.getElementById('team-count') as HTMLSelectElement;
-        teamCountSelect?.addEventListener('change', () => this.updateTeamAssignment());
+        teamCountSelect?.addEventListener('change', () => this.onTeamCountChange());
+
+        // 設定値変更イベント
+        const difficultySelect = document.getElementById('difficulty') as HTMLSelectElement;
+        difficultySelect?.addEventListener('change', () => this.onConfigChange());
+
+        const gameDurationSelect = document.getElementById('game-duration') as HTMLSelectElement;
+        gameDurationSelect?.addEventListener('change', () => this.onConfigChange());
+
+        const wordCategorySelect = document.getElementById('word-category') as HTMLSelectElement;
+        wordCategorySelect?.addEventListener('change', () => this.onConfigChange());
+
+        // 音響設定イベント
+        const masterVolumeSlider = document.getElementById('master-volume') as HTMLInputElement;
+        masterVolumeSlider?.addEventListener('input', () => {
+            this.updateVolumeDisplay();
+            this.onSoundSettingsChange();
+        });
+
+        const soundEffectsCheckbox = document.getElementById('sound-effects') as HTMLInputElement;
+        soundEffectsCheckbox?.addEventListener('change', () => this.onSoundSettingsChange());
+
+        const typingSoundCheckbox = document.getElementById('typing-sound') as HTMLInputElement;
+        typingSoundCheckbox?.addEventListener('change', () => this.onSoundSettingsChange());
+
+        const backgroundMusicCheckbox = document.getElementById('background-music') as HTMLInputElement;
+        backgroundMusicCheckbox?.addEventListener('change', () => this.onSoundSettingsChange());
+
+        // 設定保存・読み込みボタン
+        const saveConfigBtn = document.getElementById('save-config-btn') as HTMLButtonElement;
+        saveConfigBtn?.addEventListener('click', () => this.saveCurrentConfig());
+
+        const loadConfigBtn = document.getElementById('load-config-btn') as HTMLButtonElement;
+        loadConfigBtn?.addEventListener('click', () => this.loadConfig());
+
+        // キーボード再検索ボタン
+        const refreshKeyboardsBtn = document.getElementById('refresh-keyboards-btn') as HTMLButtonElement;
+        refreshKeyboardsBtn?.addEventListener('click', () => this.loadKeyboards());
 
         // キーボード入力イベント
         if (window.keyboardGameAPI) {
             window.keyboardGameAPI.onKeyboardInput((data) => this.handleKeyboardInput(data));
+        }
+    }
+
+    private onTeamCountChange(): void {
+        const teamCountSelect = document.getElementById('team-count') as HTMLSelectElement;
+        if (!teamCountSelect || !this.currentConfig) return;
+
+        const newTeamCount = parseInt(teamCountSelect.value);
+        try {
+            this.currentConfig = this.currentConfig.updateTeamCount(newTeamCount);
+            this.updateTeamAssignment();
+            this.renderTeamSettings();
+            this.renderKeyboardAssignment();
+            this.updateSetupStatus();
+        } catch (error) {
+            console.error('チーム数の変更に失敗:', error);
+        }
+    }
+
+    private onConfigChange(): void {
+        if (!this.currentConfig) return;
+
+        try {
+            const difficultySelect = document.getElementById('difficulty') as HTMLSelectElement;
+            const gameDurationSelect = document.getElementById('game-duration') as HTMLSelectElement;
+            const wordCategorySelect = document.getElementById('word-category') as HTMLSelectElement;
+
+            if (difficultySelect && this.currentConfig) {
+                this.currentConfig = this.currentConfig.updateDifficulty(difficultySelect.value as DifficultyLevel);
+            }
+            if (gameDurationSelect) {
+                this.currentConfig = this.currentConfig.updateGameDuration(parseInt(gameDurationSelect.value));
+            }
+            if (wordCategorySelect && this.currentConfig) {
+                this.currentConfig = this.currentConfig.updateWordCategory(wordCategorySelect.value as WordCategory);
+            }
+
+            this.updateSetupStatus();
+        } catch (error) {
+            console.error('設定の変更に失敗:', error);
+        }
+    }
+
+    private onSoundSettingsChange(): void {
+        if (!this.currentConfig) return;
+
+        try {
+            const masterVolumeSlider = document.getElementById('master-volume') as HTMLInputElement;
+            const soundEffectsCheckbox = document.getElementById('sound-effects') as HTMLInputElement;
+            const typingSoundCheckbox = document.getElementById('typing-sound') as HTMLInputElement;
+            const backgroundMusicCheckbox = document.getElementById('background-music') as HTMLInputElement;
+
+            const soundSettings = {
+                masterVolume: masterVolumeSlider ? parseFloat(masterVolumeSlider.value) / 100 : 0.7,
+                soundEffectsEnabled: soundEffectsCheckbox ? soundEffectsCheckbox.checked : true,
+                typingSoundEnabled: typingSoundCheckbox ? typingSoundCheckbox.checked : true,
+                backgroundMusicEnabled: backgroundMusicCheckbox ? backgroundMusicCheckbox.checked : false
+            };
+
+            this.currentConfig = this.currentConfig.updateSoundSettings(soundSettings);
+        } catch (error) {
+            console.error('音響設定の変更に失敗:', error);
         }
     }
 
@@ -116,6 +504,7 @@ class GameUI {
                 console.log('変換後のキーボード配列:', this.keyboards);
                 this.updateKeyboardList();
                 this.updateTeamAssignment();
+                this.renderKeyboardAssignment();
             } else {
                 console.log('keyboardGameAPIが利用できません - モックデータを使用');
                 // フォールバック: モックキーボードデータを直接設定
@@ -135,6 +524,7 @@ class GameUI {
                 ];
                 this.updateKeyboardList();
                 this.updateTeamAssignment();
+                this.renderKeyboardAssignment();
             }
         } catch (error) {
             console.error('キーボード取得エラー:', error);
@@ -156,6 +546,7 @@ class GameUI {
             ];
             this.updateKeyboardList();
             this.updateTeamAssignment();
+            this.renderKeyboardAssignment();
         }
     }
 
@@ -188,14 +579,17 @@ class GameUI {
         const teamCountSelect = document.getElementById('team-count') as HTMLSelectElement;
         const teamCount = parseInt(teamCountSelect?.value || '2');
         
+        // キーボード割り当てをリセット
+        this.keyboards.forEach(keyboard => {
+            keyboard.assigned = false;
+            keyboard.teamId = undefined;
+        });
+
         // チーム数に基づいてキーボード割り当て
         this.keyboards.forEach((keyboard, index) => {
             if (index < teamCount) {
                 keyboard.assigned = true;
                 keyboard.teamId = index + 1;
-            } else {
-                keyboard.assigned = false;
-                keyboard.teamId = undefined;
             }
         });
 
@@ -244,7 +638,7 @@ class GameUI {
             
             this.gameState.currentScreen = 'game';
             this.gameState.gameRunning = true;
-            this.gameState.timeRemaining = 60;
+            this.gameState.timeRemaining = this.currentConfig?.gameDuration || 60;
             this.gameState.currentWord = this.getRandomWord();
             
             this.showScreen('game');
@@ -323,6 +717,7 @@ class GameUI {
 
     private updateTeamProgress(team: Team): void {
         const wordLength = this.gameState.currentWord.length;
+        const inputLength = team.currentInput.length;
         const correctLength = this.getCorrectInputLength(team.currentInput);
         
         team.progress = wordLength > 0 ? (correctLength / wordLength) * 100 : 0;
@@ -372,19 +767,27 @@ class GameUI {
         const teamPanel = document.querySelector(`.team-${team.id}`) as HTMLElement;
         if (teamPanel) {
             teamPanel.classList.add('bounce');
-            window.setTimeout(() => {
+            setTimeout(() => {
                 teamPanel.classList.remove('bounce');
             }, 1000);
         }
     }
 
     private getRandomWord(): string {
-        const words = [
-            'ねこ', 'いぬ', 'うさぎ', 'ぞう', 'きりん',
-            'りんご', 'ばなな', 'いちご', 'ぶどう', 'みかん',
-            'あか', 'あお', 'きいろ', 'みどり', 'しろ',
-            'はな', 'つき', 'ほし', 'そら', 'うみ'
-        ];
+        // カテゴリ別の単語を定義
+        const wordCategories: Record<string, string[]> = {
+            animals: ['ねこ', 'いぬ', 'うさぎ', 'ぞう', 'きりん', 'らいおん', 'ぱんだ', 'とら'],
+            foods: ['りんご', 'ばなな', 'いちご', 'ぶどう', 'みかん', 'おにぎり', 'すし', 'らーめん'],
+            colors: ['あか', 'あお', 'きいろ', 'みどり', 'しろ', 'くろ', 'むらさき', 'おれんじ'],
+            nature: ['はな', 'つき', 'ほし', 'そら', 'うみ', 'やま', 'みず', 'かぜ'],
+            family: ['おかあさん', 'おとうさん', 'おにいさん', 'おねえさん', 'いもうと', 'おとうと'],
+            school: ['がっこう', 'せんせい', 'ほん', 'えんぴつ', 'つくえ', 'いす', 'こくばん'],
+            mixed: ['ねこ', 'いぬ', 'うさぎ', 'ぞう', 'きりん', 'りんご', 'ばなな', 'いちご', 'ぶどう', 'みかん',
+                   'あか', 'あお', 'きいろ', 'みどり', 'しろ', 'はな', 'つき', 'ほし', 'そら', 'うみ']
+        };
+
+        const category = this.currentConfig?.wordCategory || 'mixed';
+        const words = wordCategories[category] || wordCategories.mixed;
         return words[Math.floor(Math.random() * words.length)];
     }
 
@@ -396,7 +799,7 @@ class GameUI {
     }
 
     private startGameTimer(): void {
-        this.gameTimer = window.setInterval(() => {
+        this.gameTimer = setInterval(() => {
             this.gameState.timeRemaining--;
             this.updateTimer();
             
@@ -425,7 +828,7 @@ class GameUI {
         this.gameState.gameRunning = false;
         
         if (this.gameTimer) {
-            window.clearInterval(this.gameTimer);
+            clearInterval(this.gameTimer);
             this.gameTimer = null;
         }
         
@@ -470,7 +873,7 @@ class GameUI {
             currentScreen: 'setup',
             teams: [],
             currentWord: '',
-            timeRemaining: 60,
+            timeRemaining: this.currentConfig?.gameDuration || 60,
             gameRunning: false
         };
         
@@ -482,6 +885,8 @@ class GameUI {
         this.showScreen('setup');
         this.updateGameStatus('準備中');
         this.updateTeamAssignment();
+        this.renderTeamSettings();
+        this.renderKeyboardAssignment();
     }
 
     private showScreen(screenName: string): void {
@@ -510,7 +915,7 @@ class GameUI {
             countdownElement.textContent = count.toString();
             document.body.appendChild(countdownElement);
 
-            const interval = window.setInterval(() => {
+            const interval = setInterval(() => {
                 this.soundManager.playSound(SoundType.COUNTDOWN);
                 count--;
                 
@@ -518,9 +923,9 @@ class GameUI {
                     countdownElement.textContent = count.toString();
                 } else {
                     countdownElement.textContent = 'スタート!';
-                    window.clearInterval(interval);
+                    clearInterval(interval);
                     
-                    window.setTimeout(() => {
+                    setTimeout(() => {
                         document.body.removeChild(countdownElement);
                         resolve();
                     }, 500);
