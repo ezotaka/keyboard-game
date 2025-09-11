@@ -35,7 +35,7 @@ interface Keyboard {
 class GameUI {
     private gameState: GameState;
     private keyboards: Keyboard[] = [];
-    private gameTimer: NodeJS.Timeout | null = null;
+    private gameTimer: number | null = null;
     private soundManager: ISoundManager;
     private currentConfig: GameConfig | null = null; // 現在の設定
     private configRepository: GameConfigRepository | null = null; // 設定リポジトリ
@@ -143,7 +143,7 @@ class GameUI {
 
         const teamSettings = this.currentConfig.teamSettings;
         
-        teamSettingsContainer.innerHTML = teamSettings.map((team: any, index: number) => `
+        teamSettingsContainer.innerHTML = teamSettings.map((team: any) => `
             <div class="team-setting-item">
                 <div class="team-header">
                     <div class="team-color-indicator" style="background-color: ${team.color}"></div>
@@ -704,8 +704,20 @@ class GameUI {
         if (inputElement) {
             inputElement.textContent = team.currentInput;
             
+            // 日本語入力の正規化チェック
+            const normalizeText = (text: string): string => {
+                return text
+                    .normalize('NFC')  // Unicode正規化
+                    .replace(/[\u3099\u309A]/g, '')  // 濁点・半濁点除去
+                    .toLowerCase()
+                    .trim();
+            };
+
+            const normalizedInput = normalizeText(team.currentInput);
+            const normalizedTarget = normalizeText(this.gameState.currentWord);
+            
             // 入力状態に応じてスタイル変更
-            if (this.gameState.currentWord.startsWith(team.currentInput)) {
+            if (normalizedTarget.startsWith(normalizedInput)) {
                 inputElement.classList.add('correct');
                 inputElement.classList.remove('incorrect');
             } else {
@@ -731,10 +743,22 @@ class GameUI {
     }
 
     private getCorrectInputLength(input: string): number {
+        // 日本語入力の正規化
+        const normalizeText = (text: string): string => {
+            return text
+                .normalize('NFC')  // Unicode正規化
+                .replace(/[\u3099\u309A]/g, '')  // 濁点・半濁点除去
+                .toLowerCase()
+                .trim();
+        };
+
+        const normalizedInput = normalizeText(input);
+        const normalizedTarget = normalizeText(this.gameState.currentWord);
+        
         let correctLength = 0;
-        for (let i = 0; i < Math.min(input.length, this.gameState.currentWord.length); i++) {
-            if (input[i] === this.gameState.currentWord[i]) {
-                correctLength++;
+        for (let i = 0; i < Math.min(normalizedInput.length, normalizedTarget.length); i++) {
+            if (normalizedInput[i] === normalizedTarget[i]) {
+                correctLength++; 
             } else {
                 break;
             }
@@ -743,7 +767,19 @@ class GameUI {
     }
 
     private checkWord(team: Team): void {
-        if (team.currentInput === this.gameState.currentWord) {
+        // 日本語入力の正規化
+        const normalizeText = (text: string): string => {
+            return text
+                .normalize('NFC')  // Unicode正規化
+                .replace(/[\u3099\u309A]/g, '')  // 濁点・半濁点除去
+                .toLowerCase()
+                .trim();
+        };
+
+        const normalizedInput = normalizeText(team.currentInput);
+        const normalizedTarget = normalizeText(this.gameState.currentWord);
+        
+        if (normalizedInput === normalizedTarget) {
             team.score += 10;
             team.currentInput = '';
             team.progress = 0;
@@ -799,7 +835,7 @@ class GameUI {
     }
 
     private startGameTimer(): void {
-        this.gameTimer = setInterval(() => {
+        this.gameTimer = window.setInterval(() => {
             this.gameState.timeRemaining--;
             this.updateTimer();
             
@@ -828,7 +864,7 @@ class GameUI {
         this.gameState.gameRunning = false;
         
         if (this.gameTimer) {
-            clearInterval(this.gameTimer);
+            window.clearInterval(this.gameTimer);
             this.gameTimer = null;
         }
         
