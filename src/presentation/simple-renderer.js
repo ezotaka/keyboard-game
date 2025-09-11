@@ -17,12 +17,12 @@ class SimpleGameUI {
                 { id: 1, name: 'チーム 1', score: 0, currentInput: '', progress: 0 },
                 { id: 2, name: 'チーム 2', score: 0, currentInput: '', progress: 0 }
             ],
-            currentWord: 'ねこ',
+            currentWord: 'cat',
             timeRemaining: 60,
             gameRunning: false
         };
         
-        this.words = ['ねこ', 'いぬ', 'うさぎ', 'ぞう', 'きりん', 'りんご', 'ばなな', 'いちご'];
+        this.words = ['cat', 'dog', 'fish', 'bird', 'apple', 'cake', 'red', 'blue'];
         
         this.initializeUI();
         this.setupEventListeners();
@@ -260,7 +260,7 @@ class SimpleGameUI {
                 { id: 1, name: 'チーム 1', score: 0, currentInput: '', progress: 0 },
                 { id: 2, name: 'チーム 2', score: 0, currentInput: '', progress: 0 }
             ],
-            currentWord: 'ねこ',
+            currentWord: 'cat',
             timeRemaining: 60,
             gameRunning: false
         };
