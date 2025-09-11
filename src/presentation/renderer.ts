@@ -936,7 +936,9 @@ class GameUI {
 }
 
 // アプリケーション初期化
-console.log('renderer.js読み込み開始');
+console.log('=== RENDERER.JS 読み込み開始 ===');
+console.log('window.keyboardGameAPI:', window.keyboardGameAPI);
+console.log('document.readyState:', document.readyState);
 
 function initializeApp() {
     console.log('initializeApp関数実行');

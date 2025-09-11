@@ -18,4 +18,5 @@ const keyboardGameAPI = {
     }
 };
 
-contextBridge.exposeInMainWorld('keyboardGameAPI', keyboardGameAPI);
+// contextIsolation: false なので、直接windowに割り当て
+(window as any).keyboardGameAPI = keyboardGameAPI;

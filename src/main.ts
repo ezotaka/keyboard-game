@@ -52,8 +52,8 @@ export class Application {
             minWidth: 800,
             minHeight: 600,
             webPreferences: {
-                nodeIntegration: false,
-                contextIsolation: true,
+                nodeIntegration: true,
+                contextIsolation: false,
                 preload: path.join(__dirname, 'preload.js')
             },
             show: false,
