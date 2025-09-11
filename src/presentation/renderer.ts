@@ -1,6 +1,9 @@
 import { SoundManager, SoundType } from './sounds/sound-manager';
 import { ISoundManager } from './sounds/sound-manager-interface';
 import { NullSoundManager } from './sounds/null-sound-manager';
+import { GameConfig } from '../domain/entities/GameConfig.js';
+import { GameConfigRepository } from '../domain/repositories/GameConfigRepository.js';
+import { DifficultyLevel, WordCategory } from '../shared/types/GameConfig.js';
 import '../types/window.d.ts';
 
 interface GameState {
@@ -33,9 +36,9 @@ class GameUI {
     private gameState: GameState;
     private keyboards: Keyboard[] = [];
     private gameTimer: NodeJS.Timeout | null = null;
-    private soundManager: SoundManager;
-    private currentConfig: any = null; // 現在の設定
-    private configRepository: any = null; // 設定リポジトリ
+    private soundManager: ISoundManager;
+    private currentConfig: GameConfig | null = null; // 現在の設定
+    private configRepository: GameConfigRepository | null = null; // 設定リポジトリ
     
     private readonly TEAM_COLORS = [
         '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4',
@@ -56,12 +59,8 @@ class GameUI {
             console.log('SoundManager初期化成功');
         } catch (error) {
             console.error('SoundManager初期化エラー:', error);
-            // ダミーのサウンドマネージャーを作成
-            this.soundManager = {
-                playSound: (type: any, volume?: number) => {
-                    console.log('ダミーサウンド:', type, volume);
-                }
-            } as any;
+            // 適切なNullSoundManagerを使用
+            this.soundManager = new NullSoundManager();
         }
         
         // 設定リポジトリの初期化
@@ -247,14 +246,16 @@ class GameUI {
                 keyboardId: kb.id,
                 keyboardName: kb.name,
                 assignedTeamId: kb.id === keyboardId ? teamId : (
-                    this.currentConfig.keyboardAssignments.find((a: any) => a.keyboardId === kb.id)?.assignedTeamId !== teamId 
-                        ? this.currentConfig.keyboardAssignments.find((a: any) => a.keyboardId === kb.id)?.assignedTeamId 
+                    this.currentConfig?.keyboardAssignments.find((a: any) => a.keyboardId === kb.id)?.assignedTeamId !== teamId 
+                        ? this.currentConfig?.keyboardAssignments.find((a: any) => a.keyboardId === kb.id)?.assignedTeamId 
                         : undefined
                 ),
                 connected: kb.connected
             }));
 
-            this.currentConfig = this.currentConfig.updateKeyboardAssignments(updatedAssignments);
+            if (this.currentConfig) {
+                this.currentConfig = this.currentConfig.updateKeyboardAssignments(updatedAssignments);
+            }
             this.renderTeamSettings();
             this.renderKeyboardAssignment();
             this.updateSetupStatus();
@@ -445,14 +446,14 @@ class GameUI {
             const gameDurationSelect = document.getElementById('game-duration') as HTMLSelectElement;
             const wordCategorySelect = document.getElementById('word-category') as HTMLSelectElement;
 
-            if (difficultySelect) {
-                this.currentConfig = this.currentConfig.updateDifficulty(difficultySelect.value);
+            if (difficultySelect && this.currentConfig) {
+                this.currentConfig = this.currentConfig.updateDifficulty(difficultySelect.value as DifficultyLevel);
             }
             if (gameDurationSelect) {
                 this.currentConfig = this.currentConfig.updateGameDuration(parseInt(gameDurationSelect.value));
             }
-            if (wordCategorySelect) {
-                this.currentConfig = this.currentConfig.updateWordCategory(wordCategorySelect.value);
+            if (wordCategorySelect && this.currentConfig) {
+                this.currentConfig = this.currentConfig.updateWordCategory(wordCategorySelect.value as WordCategory);
             }
 
             this.updateSetupStatus();

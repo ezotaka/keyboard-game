@@ -20,8 +20,8 @@ export class GameConfigManagementUseCase {
     const savedConfig = await this.repository.save(config);
 
     // デフォルト設定として保存する場合
-    if (setAsDefault && this.repository instanceof (await import('../../infrastructure/persistence/LocalStorageGameConfigRepository.js')).LocalStorageGameConfigRepository) {
-      await (this.repository as any).saveDefaultConfig(config);
+    if (setAsDefault) {
+      await this.repository.saveDefaultConfig(config);
     }
 
     return savedConfig;

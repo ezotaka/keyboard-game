@@ -255,6 +255,6 @@ export class LocalStorageGameConfigRepository implements GameConfigRepository {
    * ユニークなIDを生成
    */
   private generateId(): string {
-    return `config-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `config-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 }
