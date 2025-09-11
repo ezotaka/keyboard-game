@@ -70,4 +70,9 @@ export interface GameConfigRepository {
    * よく使われる設定を取得
    */
   findMostUsed(limit?: number): Promise<SavedGameConfig[]>;
+
+  /**
+   * デフォルト設定として保存
+   */
+  saveDefaultConfig(config: GameConfig): Promise<void>;
 }
