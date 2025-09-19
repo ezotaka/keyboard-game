@@ -8,6 +8,10 @@ class KeyboardConnectionManager {
         this.keyboardActivities = new Map();
         this.lastScanTime = Date.now();
 
+        // プレイヤー管理
+        this.players = [];
+        this.currentPhase = '1.1'; // 現在のフェーズ
+
         this.init();
     }
 
@@ -26,6 +30,7 @@ class KeyboardConnectionManager {
         }
 
         this.updateStatus('キーボード検知完了 - タイピングテストを開始できます');
+        this.updatePhaseDisplay(); // 初期フェーズ表示
     }
 
     setupEventListeners() {
@@ -65,6 +70,23 @@ class KeyboardConnectionManager {
         window.toggleMonitoring = () => this.toggleMonitoring();
         window.exportLog = () => this.exportLog();
         window.proceedToNextStep = () => this.proceedToNextStep();
+
+        // プレイヤー管理関数
+        window.addPlayer = () => this.addPlayer();
+        window.removePlayer = (playerId) => this.removePlayer(playerId);
+        window.clearAllPlayers = () => this.clearAllPlayers();
+        window.takePhoto = () => this.takePhoto();
+        window.proceedToTeamCreation = () => this.proceedToTeamCreation();
+
+        // エンターキーでプレイヤー追加
+        const playerNameInput = document.getElementById('playerName');
+        if (playerNameInput) {
+            playerNameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.addPlayer();
+                }
+            });
+        }
     }
 
     updateKeyboards(keyboards) {
@@ -330,11 +352,212 @@ class KeyboardConnectionManager {
     }
 
     proceedToNextStep() {
-        this.addToActivityLog('[システム] 次のステップに進みます...', 'system');
-        this.updateStatus('1.2 プレイヤー集合の準備中...');
+        this.addToActivityLog('[システム] 1.2 プレイヤー集合へ進みます...', 'system');
+        this.updateStatus('1.2 プレイヤー集合 - 友達の名前を入力してください');
 
-        // TODO: 次のステップの実装
-        alert('次のステップ「1.2 プレイヤー集合」の実装はまだ準備中です。\n現在は1.1のキーボード接続確認が完了しました！');
+        // フェーズ切り替え
+        this.currentPhase = '1.2';
+        this.updatePhaseDisplay();
+
+        // セクション表示切り替え
+        document.getElementById('keyboard-section').classList.add('hidden');
+        document.getElementById('players-section').classList.remove('hidden');
+
+        // プレイヤー名入力にフォーカス
+        const playerNameInput = document.getElementById('playerName');
+        if (playerNameInput) {
+            playerNameInput.focus();
+        }
+    }
+
+    proceedToTeamCreation() {
+        if (this.players.length < 2) {
+            alert('チームを作るには最低2人の友達が必要です！');
+            return;
+        }
+
+        this.addToActivityLog(`[システム] 1.3 チーム作成へ進みます（${this.players.length}人参加）`, 'system');
+        this.updateStatus('1.3 チーム作成の準備中...');
+
+        // TODO: 1.3の実装
+        alert(`素晴らしい！${this.players.length}人の友達が集まりました。\n次は「1.3 チーム作成」の実装を進めましょう！`);
+    }
+
+    updatePhaseDisplay() {
+        // プログレスインジケーターの更新
+        document.querySelectorAll('.progress-step').forEach(step => {
+            step.classList.remove('completed', 'current');
+        });
+
+        switch (this.currentPhase) {
+            case '1.1':
+                document.getElementById('phase-1-1').classList.add('current');
+                break;
+            case '1.2':
+                document.getElementById('phase-1-1').classList.add('completed');
+                document.getElementById('phase-1-2').classList.add('current');
+                break;
+            case '1.3':
+                document.getElementById('phase-1-1').classList.add('completed');
+                document.getElementById('phase-1-2').classList.add('completed');
+                document.getElementById('phase-1-3').classList.add('current');
+                break;
+        }
+    }
+
+    // プレイヤー管理メソッド
+    addPlayer() {
+        const nameInput = document.getElementById('playerName');
+        const name = nameInput.value.trim();
+
+        if (!name) {
+            alert('なまえを入力してください！');
+            nameInput.focus();
+            return;
+        }
+
+        if (name.length > 10) {
+            alert('なまえは10文字以内で入力してください！');
+            nameInput.focus();
+            return;
+        }
+
+        // 重複チェック
+        if (this.players.some(player => player.name === name)) {
+            alert('同じ名前の友達がすでにいます！');
+            nameInput.focus();
+            return;
+        }
+
+        // 最大人数チェック（8人まで）
+        if (this.players.length >= 8) {
+            alert('最大8人まで参加できます！');
+            return;
+        }
+
+        // プレイヤー追加
+        const player = {
+            id: `player-${Date.now()}`,
+            name: name,
+            avatar: this.generatePlayerAvatar(name),
+            addedAt: new Date().toISOString()
+        };
+
+        this.players.push(player);
+        nameInput.value = '';
+        nameInput.focus();
+
+        this.renderPlayers();
+        this.updatePlayerCount();
+        this.addToActivityLog(`[システム] ${name}さんが参加しました！`, 'system');
+    }
+
+    removePlayer(playerId) {
+        const player = this.players.find(p => p.id === playerId);
+        if (!player) return;
+
+        if (confirm(`${player.name}さんを削除しますか？`)) {
+            this.players = this.players.filter(p => p.id !== playerId);
+            this.renderPlayers();
+            this.updatePlayerCount();
+            this.addToActivityLog(`[システム] ${player.name}さんが離脱しました`, 'system');
+        }
+    }
+
+    clearAllPlayers() {
+        if (this.players.length === 0) {
+            alert('削除する友達がいません！');
+            return;
+        }
+
+        if (confirm('すべての友達を削除しますか？')) {
+            this.players = [];
+            this.renderPlayers();
+            this.updatePlayerCount();
+            this.addToActivityLog('[システム] すべてのプレイヤーを削除しました', 'system');
+        }
+    }
+
+    takePhoto() {
+        // 将来的にはカメラ機能を実装
+        alert('写真撮影機能は将来のバージョンで実装予定です！\n今は名前だけ入力してください。');
+    }
+
+    generatePlayerAvatar(name) {
+        // 名前の最初の文字をアバターとして使用
+        return name.charAt(0).toUpperCase();
+    }
+
+    renderPlayers() {
+        const container = document.getElementById('players-grid');
+        if (!container) return;
+
+        if (this.players.length === 0) {
+            container.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #718096;">
+                    <div style="font-size: 3em; margin-bottom: 20px;">👥</div>
+                    <div style="font-size: 1.2em; margin-bottom: 10px;">まだ友達がいません</div>
+                    <div>上のフォームから友達を追加してください</div>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = this.players.map(player => `
+            <div class="player-card">
+                <div class="player-avatar" style="background: ${this.generatePlayerColor(player.id)}">
+                    ${player.avatar}
+                </div>
+                <div class="player-name">${this.escapeHtml(player.name)}</div>
+                <div class="player-actions">
+                    <button onclick="removePlayer('${player.id}')" class="btn-small btn-danger">
+                        🗑️ 削除
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    generatePlayerColor(playerId) {
+        // プレイヤーIDから一意な色を生成
+        const colors = [
+            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+            'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+            'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+            'linear-gradient(135deg, #ff8a80 0%, #ea80fc 100%)'
+        ];
+
+        const hash = playerId.split('').reduce((a, b) => {
+            a = ((a << 5) - a) + b.charCodeAt(0);
+            return a & a;
+        }, 0);
+
+        return colors[Math.abs(hash) % colors.length];
+    }
+
+    updatePlayerCount() {
+        const countElement = document.getElementById('playerCount');
+        const proceedBtn = document.getElementById('proceedToTeamsBtn');
+
+        if (countElement) {
+            countElement.textContent = this.players.length;
+        }
+
+        if (proceedBtn) {
+            if (this.players.length >= 2) {
+                proceedBtn.disabled = false;
+                proceedBtn.style.background = '#48bb78';
+                proceedBtn.textContent = `1.3 チーム作成へ進む（${this.players.length}人）`;
+            } else {
+                proceedBtn.disabled = true;
+                proceedBtn.style.background = '#a0aec0';
+                proceedBtn.textContent = `あと${2 - this.players.length}人必要です`;
+            }
+        }
     }
 
     escapeHtml(text) {
