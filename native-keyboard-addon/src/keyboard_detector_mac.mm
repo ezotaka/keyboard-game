@@ -122,9 +122,8 @@ public:
     }
 
     void scanForKeyboards() {
-        // Clear existing keyboards
-        keyboards.clear();
-        deviceToKeyboardMap.clear();
+        // 既存のキーボードはクリアしない（重複を防ぐため）
+        std::cout << "Scanning for keyboards (current count: " << keyboards.size() << ")..." << std::endl;
 
         // Get current devices
         CFSetRef devices = IOHIDManagerCopyDevices(hidManager);
@@ -142,7 +141,14 @@ public:
 
             for (CFIndex i = 0; i < deviceCount; i++) {
                 IOHIDDeviceRef device = deviceArray[i];
-                addKeyboard(device);
+
+                // 既に追加済みかチェック
+                auto it = deviceToKeyboardMap.find(device);
+                if (it == deviceToKeyboardMap.end()) {
+                    addKeyboard(device);
+                } else {
+                    std::cout << "Device already scanned, skipping..." << std::endl;
+                }
             }
 
             free(deviceArray);
@@ -235,6 +241,14 @@ private:
     static void deviceMatchingCallback(void* context, IOReturn result, void* sender, IOHIDDeviceRef device) {
         KeyboardDetector* detector = static_cast<KeyboardDetector*>(context);
         std::cout << "Device connected" << std::endl;
+
+        // 既に追加済みかチェック
+        auto it = detector->deviceToKeyboardMap.find(device);
+        if (it != detector->deviceToKeyboardMap.end()) {
+            std::cout << "Device already exists, skipping..." << std::endl;
+            return;
+        }
+
         detector->addKeyboard(device);
     }
 
