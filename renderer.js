@@ -12,6 +12,11 @@ class KeyboardConnectionManager {
         this.players = [];
         this.currentPhase = '1.1'; // 現在のフェーズ
 
+        // チーム管理
+        this.teams = [];
+        this.teamCount = 2;
+        this.divisionMethod = 'auto';
+
         this.init();
     }
 
@@ -77,6 +82,15 @@ class KeyboardConnectionManager {
         window.clearAllPlayers = () => this.clearAllPlayers();
         window.takePhoto = () => this.takePhoto();
         window.proceedToTeamCreation = () => this.proceedToTeamCreation();
+
+        // チーム作成関数
+        window.updateTeamCount = () => this.updateTeamCount();
+        window.updateDivisionMethod = () => this.updateDivisionMethod();
+        window.generateTeams = () => this.generateTeams();
+        window.clearTeams = () => this.clearTeams();
+        window.movePlayerToTeam = (playerId, teamId) => this.movePlayerToTeam(playerId, teamId);
+        window.removePlayerFromTeam = (playerId) => this.removePlayerFromTeam(playerId);
+        window.proceedToMemberAssignment = () => this.proceedToMemberAssignment();
 
         // エンターキーでプレイヤー追加
         const playerNameInput = document.getElementById('playerName');
@@ -377,10 +391,19 @@ class KeyboardConnectionManager {
         }
 
         this.addToActivityLog(`[システム] 1.3 チーム作成へ進みます（${this.players.length}人参加）`, 'system');
-        this.updateStatus('1.3 チーム作成の準備中...');
+        this.updateStatus('1.3 チーム作成 - チームを作って競い合いましょう！');
 
-        // TODO: 1.3の実装
-        alert(`素晴らしい！${this.players.length}人の友達が集まりました。\n次は「1.3 チーム作成」の実装を進めましょう！`);
+        // フェーズ切り替え
+        this.currentPhase = '1.3';
+        this.updatePhaseDisplay();
+
+        // セクション表示切り替え
+        document.getElementById('players-section').classList.add('hidden');
+        document.getElementById('teams-section').classList.remove('hidden');
+
+        // チーム数を自動設定（プレイヤー数に応じて）
+        this.autoSetTeamCount();
+        this.renderTeamsDisplay();
     }
 
     updatePhaseDisplay() {
@@ -401,6 +424,12 @@ class KeyboardConnectionManager {
                 document.getElementById('phase-1-1').classList.add('completed');
                 document.getElementById('phase-1-2').classList.add('completed');
                 document.getElementById('phase-1-3').classList.add('current');
+                break;
+            case '1.4':
+                document.getElementById('phase-1-1').classList.add('completed');
+                document.getElementById('phase-1-2').classList.add('completed');
+                document.getElementById('phase-1-3').classList.add('completed');
+                document.getElementById('phase-1-4').classList.add('current');
                 break;
         }
     }
@@ -560,6 +589,273 @@ class KeyboardConnectionManager {
         }
     }
 
+    // チーム作成機能
+    autoSetTeamCount() {
+        const playerCount = this.players.length;
+
+        if (playerCount <= 4) {
+            this.teamCount = 2;
+        } else if (playerCount <= 6) {
+            this.teamCount = 3;
+        } else {
+            this.teamCount = 4;
+        }
+
+        // UIを更新
+        const teamCountSelect = document.getElementById('teamCount');
+        if (teamCountSelect) {
+            teamCountSelect.value = this.teamCount;
+        }
+    }
+
+    updateTeamCount() {
+        const teamCountSelect = document.getElementById('teamCount');
+        if (teamCountSelect) {
+            this.teamCount = parseInt(teamCountSelect.value);
+            this.addToActivityLog(`[システム] チーム数を${this.teamCount}に変更しました`, 'system');
+
+            // 既存のチームがある場合は再構築するか確認
+            if (this.teams.length > 0) {
+                if (confirm('チーム数を変更すると現在のチーム分けがリセットされます。続けますか？')) {
+                    this.clearTeams();
+                    this.renderTeamsDisplay();
+                } else {
+                    // 元の値に戻す
+                    teamCountSelect.value = this.teams.length;
+                    this.teamCount = this.teams.length;
+                }
+            }
+        }
+    }
+
+    updateDivisionMethod() {
+        const checkedMethod = document.querySelector('input[name="divisionMethod"]:checked');
+        if (checkedMethod) {
+            this.divisionMethod = checkedMethod.value;
+            this.addToActivityLog(`[システム] 分割方法を「${this.divisionMethod === 'auto' ? '自動' : '手動'}」に変更しました`, 'system');
+        }
+    }
+
+    generateTeams() {
+        if (this.players.length < 2) {
+            alert('チームを作るには最低2人の友達が必要です！');
+            return;
+        }
+
+        // チームを初期化
+        this.teams = [];
+        for (let i = 1; i <= this.teamCount; i++) {
+            this.teams.push({
+                id: `team-${i}`,
+                name: `チーム${i}`,
+                members: [],
+                color: this.getTeamColor(i)
+            });
+        }
+
+        // プレイヤーをシャッフルしてランダムに配置
+        const shuffledPlayers = [...this.players].sort(() => Math.random() - 0.5);
+
+        shuffledPlayers.forEach((player, index) => {
+            const teamIndex = index % this.teamCount;
+            this.teams[teamIndex].members.push({
+                ...player,
+                teamId: this.teams[teamIndex].id
+            });
+        });
+
+        this.addToActivityLog(`[システム] ${this.teamCount}チームを自動生成しました`, 'system');
+        this.renderTeamsDisplay();
+        this.updateTeamsSummary();
+    }
+
+    clearTeams() {
+        if (this.teams.length === 0) {
+            alert('削除するチームがありません！');
+            return;
+        }
+
+        if (confirm('すべてのチームをリセットしますか？')) {
+            this.teams = [];
+            this.addToActivityLog('[システム] すべてのチームを削除しました', 'system');
+            this.renderTeamsDisplay();
+            this.updateTeamsSummary();
+        }
+    }
+
+    movePlayerToTeam(playerId, teamId) {
+        // プレイヤーを他のチームから削除
+        this.teams.forEach(team => {
+            team.members = team.members.filter(member => member.id !== playerId);
+        });
+
+        // 指定されたチームにプレイヤーを追加
+        const targetTeam = this.teams.find(team => team.id === teamId);
+        const player = this.players.find(p => p.id === playerId);
+
+        if (targetTeam && player) {
+            targetTeam.members.push({
+                ...player,
+                teamId: teamId
+            });
+
+            this.addToActivityLog(`[システム] ${player.name}さんを${targetTeam.name}に移動しました`, 'system');
+            this.renderTeamsDisplay();
+            this.updateTeamsSummary();
+        }
+    }
+
+    removePlayerFromTeam(playerId) {
+        const player = this.players.find(p => p.id === playerId);
+        if (!player) return;
+
+        // プレイヤーをすべてのチームから削除
+        this.teams.forEach(team => {
+            team.members = team.members.filter(member => member.id !== playerId);
+        });
+
+        this.addToActivityLog(`[システム] ${player.name}さんをチームから外しました`, 'system');
+        this.renderTeamsDisplay();
+        this.updateTeamsSummary();
+    }
+
+    getTeamColor(teamNumber) {
+        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24'];
+        return colors[teamNumber - 1] || '#666';
+    }
+
+    renderTeamsDisplay() {
+        const container = document.getElementById('teams-display');
+        if (!container) return;
+
+        if (this.teams.length === 0) {
+            container.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #718096;">
+                    <div style="font-size: 3em; margin-bottom: 20px;">🏆</div>
+                    <div style="font-size: 1.2em; margin-bottom: 10px;">まだチームが作られていません</div>
+                    <div>上の「チーム自動生成」ボタンでチームを作成してください</div>
+                </div>
+            `;
+            return;
+        }
+
+        // チーム表示
+        container.innerHTML = this.teams.map(team => `
+            <div class="team-container team-${team.id.split('-')[1]}">
+                <div class="team-header">
+                    <div class="team-name">${this.escapeHtml(team.name)}</div>
+                    <div class="team-member-count">${team.members.length}人のメンバー</div>
+                </div>
+                <div class="team-members">
+                    ${team.members.map(member => `
+                        <div class="team-member">
+                            <div class="team-member-avatar" style="background: ${this.generatePlayerColor(member.id)}">
+                                ${member.avatar}
+                            </div>
+                            <div class="team-member-name">${this.escapeHtml(member.name)}</div>
+                            <div class="team-member-actions">
+                                <button onclick="removePlayerFromTeam('${member.id}')" class="btn-mini btn-danger">
+                                    ❌
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                ${this.divisionMethod === 'manual' ? `
+                    <div class="drop-zone" ondrop="dropPlayer(event, '${team.id}')" ondragover="allowDrop(event)">
+                        ここにプレイヤーをドロップ
+                    </div>
+                ` : ''}
+            </div>
+        `).join('');
+
+        // 手動モードの場合、未割り当てプレイヤーを表示
+        if (this.divisionMethod === 'manual') {
+            this.renderUnassignedPlayers();
+        }
+    }
+
+    renderUnassignedPlayers() {
+        const assignedPlayerIds = new Set();
+        this.teams.forEach(team => {
+            team.members.forEach(member => assignedPlayerIds.add(member.id));
+        });
+
+        const unassignedPlayers = this.players.filter(player => !assignedPlayerIds.has(player.id));
+
+        if (unassignedPlayers.length > 0) {
+            const container = document.getElementById('teams-display');
+            container.innerHTML += `
+                <div class="unassigned-players" style="grid-column: 1 / -1;">
+                    <h4>👥 未割り当てのプレイヤー</h4>
+                    <div class="unassigned-grid">
+                        ${unassignedPlayers.map(player => `
+                            <div class="unassigned-player" draggable="true" ondragstart="dragPlayer(event, '${player.id}')">
+                                <div class="unassigned-player-avatar" style="background: ${this.generatePlayerColor(player.id)}">
+                                    ${player.avatar}
+                                </div>
+                                <div>${this.escapeHtml(player.name)}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    updateTeamsSummary() {
+        const summaryElement = document.getElementById('teams-summary');
+        const proceedBtn = document.getElementById('proceedToMemberBtn');
+
+        if (!summaryElement || !proceedBtn) return;
+
+        // 全プレイヤーがチームに割り当てられているかチェック
+        const assignedPlayerIds = new Set();
+        this.teams.forEach(team => {
+            team.members.forEach(member => assignedPlayerIds.add(member.id));
+        });
+
+        const allPlayersAssigned = this.players.length === assignedPlayerIds.size;
+        const hasTeams = this.teams.length > 0;
+
+        if (hasTeams && allPlayersAssigned) {
+            summaryElement.style.display = 'flex';
+            proceedBtn.disabled = false;
+            proceedBtn.style.background = '#48bb78';
+            proceedBtn.textContent = '1.4 メンバー割り当てへ進む';
+        } else {
+            summaryElement.style.display = 'none';
+        }
+    }
+
+    proceedToMemberAssignment() {
+        if (this.teams.length === 0) {
+            alert('チームを作成してから進んでください！');
+            return;
+        }
+
+        // 全プレイヤーがチームに割り当てられているかチェック
+        const assignedPlayerIds = new Set();
+        this.teams.forEach(team => {
+            team.members.forEach(member => assignedPlayerIds.add(member.id));
+        });
+
+        if (this.players.length !== assignedPlayerIds.size) {
+            alert('すべてのプレイヤーをチームに割り当ててから進んでください！');
+            return;
+        }
+
+        this.addToActivityLog(`[システム] 1.4 メンバー割り当てへ進みます（${this.teams.length}チーム作成完了）`, 'system');
+        this.updateStatus('1.4 メンバー割り当ての準備中...');
+
+        // フェーズ切り替え
+        this.currentPhase = '1.4';
+        this.updatePhaseDisplay();
+
+        // TODO: 1.4の実装
+        alert(`素晴らしい！${this.teams.length}チームが作成されました。\n次は「1.4 メンバー割り当て」の実装を進めましょう！`);
+    }
+
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
@@ -567,8 +863,31 @@ class KeyboardConnectionManager {
     }
 }
 
+// ドラッグ&ドロップ用のグローバル関数
+let draggedPlayerId = null;
+
+function dragPlayer(event, playerId) {
+    draggedPlayerId = playerId;
+    event.dataTransfer.effectAllowed = 'move';
+}
+
+function allowDrop(event) {
+    event.preventDefault();
+    event.currentTarget.classList.add('drag-over');
+}
+
+function dropPlayer(event, teamId) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('drag-over');
+
+    if (draggedPlayerId && window.keyboardManager) {
+        window.keyboardManager.movePlayerToTeam(draggedPlayerId, teamId);
+        draggedPlayerId = null;
+    }
+}
+
 // DOM読み込み完了後に初期化
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM読み込み完了 - KeyboardConnectionManager初期化開始');
-    new KeyboardConnectionManager();
+    window.keyboardManager = new KeyboardConnectionManager();
 });
