@@ -1,5 +1,5 @@
 /**
- * @jest-environment node
+ * @jest-environment jsdom
  */
 
 // Electronモジュールをモック化
@@ -23,24 +23,21 @@ describe('preload.ts', () => {
         require('../preload');
     });
 
-    it('should expose keyboardGameAPI to main world', () => {
-        expect(mockContextBridge.exposeInMainWorld).toHaveBeenCalledWith(
-            'keyboardGameAPI',
-            expect.objectContaining({
-                onKeyboardInput: expect.any(Function),
-                startGame: expect.any(Function),
-                stopGame: expect.any(Function),
-                getKeyboards: expect.any(Function)
-            })
-        );
+    it('should expose keyboardGameAPI to window', () => {
+        // preload.tsは直接windowに割り当てるので、windowオブジェクトをテストする
+        expect((window as any).keyboardGameAPI).toBeDefined();
+        expect((window as any).keyboardGameAPI).toHaveProperty('onKeyboardInput');
+        expect((window as any).keyboardGameAPI).toHaveProperty('startGame');
+        expect((window as any).keyboardGameAPI).toHaveProperty('stopGame');
+        expect((window as any).keyboardGameAPI).toHaveProperty('getKeyboards');
     });
 
     it('should have correct API methods', () => {
-        const exposedAPI = mockContextBridge.exposeInMainWorld.mock.calls[0][1];
-        
-        expect(typeof exposedAPI.onKeyboardInput).toBe('function');
-        expect(typeof exposedAPI.startGame).toBe('function');
-        expect(typeof exposedAPI.stopGame).toBe('function');
-        expect(typeof exposedAPI.getKeyboards).toBe('function');
+        const api = (window as any).keyboardGameAPI;
+
+        expect(typeof api.onKeyboardInput).toBe('function');
+        expect(typeof api.startGame).toBe('function');
+        expect(typeof api.stopGame).toBe('function');
+        expect(typeof api.getKeyboards).toBe('function');
     });
 });

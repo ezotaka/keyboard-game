@@ -92,6 +92,66 @@
                         </div>
                     </div>
 
+                    <!-- プレイヤー管理 -->
+                    <div class="settings-section">
+                        <h3>プレイヤー管理</h3>
+                        <div class="player-section">
+                            <div class="player-input-area">
+                                <input type="text" id="player-name-input" class="setting-input" placeholder="プレイヤー名を入力" maxlength="20">
+                                <button id="add-player-btn" class="btn btn-secondary">プレイヤー追加</button>
+                            </div>
+                            <div class="player-list">
+                                <h4>参加プレイヤー (<span id="player-count">0</span>人)</h4>
+                                <div id="players-container" class="players-container">
+                                    <!-- 動的に生成 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- チームメンバー割り当て -->
+                    <div class="settings-section">
+                        <h3>チームメンバー割り当て</h3>
+                        <div class="team-assignment-section">
+                            <div class="assignment-controls">
+                                <div class="assignment-strategy">
+                                    <label for="assignment-strategy">割り当て方法:</label>
+                                    <select id="assignment-strategy" class="setting-input">
+                                        <option value="sequential">順番通り</option>
+                                        <option value="random">ランダム</option>
+                                        <option value="manual">手動指定</option>
+                                    </select>
+                                </div>
+                                <button id="assign-players-btn" class="btn btn-primary">メンバー割り当て</button>
+                            </div>
+                            <div id="team-members-display" class="team-members-display">
+                                <!-- 動的に生成 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ターン順設定 -->
+                    <div class="settings-section">
+                        <h3>ターン順設定</h3>
+                        <div class="turn-order-section">
+                            <div class="turn-order-controls">
+                                <div class="turn-order-strategy">
+                                    <label for="turn-order-strategy">ターン順決定方法:</label>
+                                    <select id="turn-order-strategy" class="setting-input">
+                                        <option value="sequential">追加順</option>
+                                        <option value="random">ランダム</option>
+                                        <option value="alphabetical">あいうえお順</option>
+                                        <option value="manual">手動指定</option>
+                                    </select>
+                                </div>
+                                <button id="decide-turn-order-btn" class="btn btn-primary">ターン順決定</button>
+                            </div>
+                            <div id="turn-order-display" class="turn-order-display">
+                                <!-- 動的に生成 -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- キーボード設定 -->
                     <div class="settings-section">
                         <h3>キーボード設定</h3>

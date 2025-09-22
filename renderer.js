@@ -852,8 +852,186 @@ class KeyboardConnectionManager {
         this.currentPhase = '1.4';
         this.updatePhaseDisplay();
 
-        // TODO: 1.4の実装
-        alert(`素晴らしい！${this.teams.length}チームが作成されました。\n次は「1.4 メンバー割り当て」の実装を進めましょう！`);
+        // 1.4メンバー割り当てセクションを表示
+        this.showMemberAssignmentSection();
+    }
+
+    showMemberAssignmentSection() {
+        // チームセクションを隠す
+        const teamsSection = document.getElementById('teams-section');
+        if (teamsSection) {
+            teamsSection.classList.add('hidden');
+        }
+
+        // 1.4メンバー割り当てセクションを作成
+        const memberAssignmentSection = this.createMemberAssignmentSection();
+
+        // 既存のセクションの後に追加
+        if (teamsSection && teamsSection.parentNode) {
+            teamsSection.parentNode.insertBefore(memberAssignmentSection, teamsSection.nextSibling);
+        }
+
+        this.updateStatus('1.4 メンバー割り当て - チームのターン順を決めましょう');
+        this.addToActivityLog(`[システム] 1.4 メンバー割り当てセクションを表示しました`, 'system');
+    }
+
+    createMemberAssignmentSection() {
+        const section = document.createElement('div');
+        section.className = 'section';
+        section.id = 'member-assignment-section';
+
+        section.innerHTML = `
+            <h3>⚡ メンバー割り当て</h3>
+            <p>各チームの中でのターン順（プレイ順）を決めましょう！</p>
+
+            <div class="turn-order-controls">
+                <h4>ターン順決定方法</h4>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="turnOrderMethod" value="auto" checked>
+                        <span>自動で決める</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="turnOrderMethod" value="manual">
+                        <span>手動で決める</span>
+                    </label>
+                </div>
+                <div class="controls">
+                    <button onclick="keyboardManager.decideTurnOrder()">🎲 ターン順決定</button>
+                    <button onclick="keyboardManager.resetTurnOrder()" class="secondary">🔄 リセット</button>
+                </div>
+            </div>
+
+            <div class="teams-display" id="turn-order-teams-display">
+                ${this.generateTurnOrderTeamsDisplay()}
+            </div>
+
+            <div class="teams-summary" id="turn-order-summary" style="display: none;">
+                <div>
+                    <strong>ターン順決定完了！</strong>
+                    <div style="font-size: 0.9em; color: #666;">全チームのプレイ順が決まりました</div>
+                </div>
+                <div>
+                    <button onclick="keyboardManager.proceedToKeyboardAssignment()" id="proceedToKeyboardBtn" disabled>
+                        1.5 キーボード割り当てへ進む
+                    </button>
+                </div>
+            </div>
+        `;
+
+        return section;
+    }
+
+    generateTurnOrderTeamsDisplay() {
+        let html = '';
+
+        this.teams.forEach((team, index) => {
+            html += `
+                <div class="team-container team-${index + 1}">
+                    <div class="team-header">
+                        <div class="team-name">${this.escapeHtml(team.name)}</div>
+                        <div class="team-member-count">${team.members.length}人</div>
+                    </div>
+                    <div class="team-members" id="team-${team.id}-turn-order">
+                        ${team.members.map((member, memberIndex) => `
+                            <div class="team-member" data-player-id="${member.id}">
+                                <div class="team-member-avatar" style="background: ${member.color};">
+                                    ${this.escapeHtml(member.name.charAt(0))}
+                                </div>
+                                <div class="team-member-name">${this.escapeHtml(member.name)}</div>
+                                <div class="team-member-turn-order">
+                                    <span class="turn-number">${memberIndex + 1}番目</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        });
+
+        return html;
+    }
+
+    decideTurnOrder() {
+        const method = document.querySelector('input[name="turnOrderMethod"]:checked').value;
+
+        if (method === 'auto') {
+            // 自動でターン順をシャッフル
+            this.teams.forEach(team => {
+                // フィッシャー・イェーツアルゴリズムでシャッフル
+                for (let i = team.members.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [team.members[i], team.members[j]] = [team.members[j], team.members[i]];
+                }
+            });
+
+            this.addToActivityLog(`[システム] 全チームのターン順を自動決定しました`, 'system');
+        }
+
+        // 表示を更新
+        this.updateTurnOrderDisplay();
+
+        // 完了状態を更新
+        this.checkTurnOrderCompletion();
+    }
+
+    updateTurnOrderDisplay() {
+        const teamsDisplay = document.getElementById('turn-order-teams-display');
+        if (teamsDisplay) {
+            teamsDisplay.innerHTML = this.generateTurnOrderTeamsDisplay();
+        }
+    }
+
+    resetTurnOrder() {
+        // 各チームのメンバーを元の順序（追加順）に戻す
+        this.teams.forEach(team => {
+            team.members.sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt));
+        });
+
+        this.updateTurnOrderDisplay();
+        this.addToActivityLog(`[システム] ターン順をリセットしました`, 'system');
+
+        // 完了状態をリセット
+        const summary = document.getElementById('turn-order-summary');
+        if (summary) {
+            summary.style.display = 'none';
+        }
+
+        const proceedBtn = document.getElementById('proceedToKeyboardBtn');
+        if (proceedBtn) {
+            proceedBtn.disabled = true;
+        }
+    }
+
+    checkTurnOrderCompletion() {
+        // ターン順が決定されているかチェック（この場合は常にtrue）
+        const isComplete = this.teams.length > 0 && this.teams.every(team => team.members.length > 0);
+
+        const summary = document.getElementById('turn-order-summary');
+        const proceedBtn = document.getElementById('proceedToKeyboardBtn');
+
+        if (summary && proceedBtn) {
+            if (isComplete) {
+                summary.style.display = 'flex';
+                proceedBtn.disabled = false;
+                this.updateStatus('1.4 メンバー割り当て完了 - 次は1.5キーボード割り当てです');
+            } else {
+                summary.style.display = 'none';
+                proceedBtn.disabled = true;
+            }
+        }
+    }
+
+    proceedToKeyboardAssignment() {
+        this.addToActivityLog(`[システム] 1.5 キーボード割り当てへ進みます`, 'system');
+        this.updateStatus('1.5 キーボード割り当ての準備中...');
+
+        // フェーズ切り替え
+        this.currentPhase = '1.5';
+        this.updatePhaseDisplay();
+
+        // TODO: 1.5の実装
+        alert(`ターン順決定完了！\n次は「1.5 キーボード割り当て」の実装を進めましょう！`);
     }
 
     escapeHtml(text) {

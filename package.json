@@ -18,8 +18,8 @@
     "dist:mac": "electron-builder --mac"
   },
   "dependencies": {
-    "node-hid": "^2.1.2",
-    "node-gyp": "^11.4.2"
+    "node-gyp": "^11.4.2",
+    "node-hid": "^2.2.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.5",
