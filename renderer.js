@@ -198,15 +198,83 @@ class KeyboardConnectionManager {
             }
         }
 
-        // 進行補助: 1.1 → 1.2 へ誘導
-        if (this.currentPhase === '1.1') {
-            this.proceedToNextStep();
-        }
-
-        this.addToActivityLog('[システム] 開発プリセットを適用しました', 'system');
-        this.updateStatus('開発プリセットを適用しました');
-        alert(`\uD83D\uDE80 プリセット「${preset.name}」を適用しました`);
+        // 進行補助: セットアップを自動で前進させる
+        this.advanceToPreGame(preset);
     }
+
+    async advanceToPreGame(preset) {
+        try {
+            // 1.1 → 1.2 プレイヤー集合へ
+            if (this.currentPhase === '1.1') {
+                this.proceedToNextStep();
+                await this.#sleep(50);
+            }
+
+            // 1.2 → 1.3 チーム作成へ（自動生成）
+            if (this.players.length >= 2) {
+                this.proceedToTeamCreation();
+                await this.#sleep(50);
+
+                // divisionMethod を自動にしてチーム生成
+                this.divisionMethod = 'auto';
+                // teamCount は applyDevPreset 内で設定済み
+                this.generateTeams();
+                await this.#sleep(50);
+            }
+
+            // 1.3 → 1.4 メンバー割り当て（自動決定）
+            if (this.teams?.length > 0) {
+                this.proceedToMemberAssignment();
+                await this.#sleep(50);
+                // ターン順は自動
+                const autoTurnRadio = document.querySelector('input[name="turnOrderMethod"][value="auto"]');
+                if (autoTurnRadio) autoTurnRadio.checked = true;
+                this.decideTurnOrder();
+                await this.#sleep(50);
+                this.proceedToKeyboardAssignment();
+                await this.#sleep(50);
+            }
+
+            // 1.5 キーボード割り当て（自動）
+            if (typeof this.autoAssignKeyboards === 'function') {
+                this.autoAssignKeyboards();
+                await this.#sleep(50);
+            }
+
+            // すべてのチームに割り当てられていれば 1.6 へ進む
+            const enoughKeyboards = (this.keyboards?.length || 0) >= (this.teams?.length || 0);
+            if (enoughKeyboards) {
+                this.proceedToTargetSetting();
+                await this.#sleep(50);
+
+                // 難易度と目標数をプリセットに合わせて調整（任意）
+                const difficultyMap = { easy: 'easy', normal: 'normal', hard: 'hard' };
+                const presetDifficulty = difficultyMap[preset?.difficulty] || 'normal';
+                const difficultySelect = document.getElementById('difficulty-level');
+                if (difficultySelect) difficultySelect.value = presetDifficulty;
+
+                // 目標数はゲーム時間から大雑把に推定（30秒=3,60秒=5,120秒=8など）
+                const targetInput = document.getElementById('target-count-input');
+                const secs = Number(preset?.gameDurationSeconds) || 60;
+                const guessedTarget = secs <= 30 ? 3 : secs <= 60 ? 5 : secs <= 120 ? 8 : 10;
+                if (targetInput) targetInput.value = guessedTarget;
+                this.updateTargetPreview();
+
+                // 設定完了 → ゲーム開始直前のセクション表示
+                this.confirmTargetSettings();
+            } else {
+                this.updateStatus('キーボード数が不足しているため、1.5 で停止しました');
+                this.addToActivityLog('[システム] キーボード不足のため自動進行を停止', 'system');
+            }
+
+            this.addToActivityLog(`[システム] プリセット\"${preset?.name || ''}\"を適用し、開始直前まで自動進行しました`, 'system');
+        } catch (e) {
+            console.warn('自動進行でエラー:', e);
+            this.addToActivityLog('[警告] 自動進行でエラーが発生しました', 'system');
+        }
+    }
+
+    #sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
     updateKeyboards(keyboards) {
         // LocationIDベースで重複除去（念のため）
