@@ -1030,8 +1030,278 @@ class KeyboardConnectionManager {
         this.currentPhase = '1.5';
         this.updatePhaseDisplay();
 
-        // TODO: 1.5の実装
-        alert(`ターン順決定完了！\n次は「1.5 キーボード割り当て」の実装を進めましょう！`);
+        // 1.5キーボード割り当てセクションを表示
+        this.showKeyboardAssignmentSection();
+    }
+
+    showKeyboardAssignmentSection() {
+        // メンバー割り当てセクションを隠す
+        const memberAssignmentSection = document.getElementById('member-assignment-section');
+        if (memberAssignmentSection) {
+            memberAssignmentSection.classList.add('hidden');
+        }
+
+        // 1.5キーボード割り当てセクションを作成
+        const keyboardAssignmentSection = this.createKeyboardAssignmentSection();
+
+        // 既存のセクションの後に追加
+        if (memberAssignmentSection && memberAssignmentSection.parentNode) {
+            memberAssignmentSection.parentNode.insertBefore(keyboardAssignmentSection, memberAssignmentSection.nextSibling);
+        }
+
+        this.updateStatus('1.5 キーボード割り当て - 各チームにキーボードを割り当てましょう');
+        this.addToActivityLog(`[システム] 1.5 キーボード割り当てセクションを表示しました`, 'system');
+    }
+
+    createKeyboardAssignmentSection() {
+        const section = document.createElement('div');
+        section.className = 'section';
+        section.id = 'keyboard-assignment-section';
+
+        section.innerHTML = `
+            <h3>⌨️ キーボード割り当て</h3>
+            <p>各チームに使用するキーボードを割り当てましょう！</p>
+
+            <div class="keyboard-status-overview">
+                <div class="keyboard-summary">
+                    <span>検知済みキーボード: <strong id="available-keyboard-count">${this.keyboards.length}</strong>台</span>
+                    <span>必要キーボード: <strong id="required-keyboard-count">${this.teams.length}</strong>台</span>
+                    <button onclick="keyboardManager.refreshKeyboards()" class="btn-small">🔄 再検索</button>
+                </div>
+                ${this.keyboards.length < this.teams.length ?
+                    `<div class="warning-message">⚠️ キーボードが不足しています。必要数: ${this.teams.length}台、検知済み: ${this.keyboards.length}台</div>` :
+                    ''}
+            </div>
+
+            <div class="assignment-controls">
+                <h4>割り当て方法</h4>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="keyboardAssignmentMethod" value="auto" checked>
+                        <span>自動で割り当て</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="keyboardAssignmentMethod" value="manual">
+                        <span>手動で割り当て</span>
+                    </label>
+                </div>
+                <div class="controls">
+                    <button onclick="keyboardManager.assignKeyboards()" id="assignKeyboardsBtn">🎯 キーボード割り当て</button>
+                    <button onclick="keyboardManager.clearKeyboardAssignments()" class="secondary">🔄 割り当てクリア</button>
+                </div>
+            </div>
+
+            <div class="keyboard-assignment-display" id="keyboard-assignment-display">
+                ${this.generateKeyboardAssignmentDisplay()}
+            </div>
+
+            <div class="assignment-summary" id="keyboard-assignment-summary" style="display: none;">
+                <div>
+                    <strong>キーボード割り当て完了！</strong>
+                    <div style="font-size: 0.9em; color: #666;">全チームにキーボードが割り当てられました</div>
+                </div>
+                <div>
+                    <button onclick="keyboardManager.proceedToTargetSetting()" id="proceedToTargetBtn" disabled>
+                        1.6 お題数設定へ進む
+                    </button>
+                </div>
+            </div>
+        `;
+
+        return section;
+    }
+
+    generateKeyboardAssignmentDisplay() {
+        let html = '';
+
+        // チームとキーボードの表示
+        html += '<div class="teams-keyboards-grid">';
+
+        this.teams.forEach((team, index) => {
+            const assignedKeyboard = this.keyboards.find(kb => kb.assignedTeamId === team.id);
+
+            html += `
+                <div class="team-keyboard-card team-${index + 1}">
+                    <div class="team-info">
+                        <div class="team-name">${this.escapeHtml(team.name)}</div>
+                        <div class="team-members-count">${team.members.length}人</div>
+                        <div class="team-members-preview">
+                            ${team.members.slice(0, 3).map(member =>
+                                `<span class="member-avatar" style="background: ${member.color};">${this.escapeHtml(member.name.charAt(0))}</span>`
+                            ).join('')}
+                            ${team.members.length > 3 ? `<span class="member-more">+${team.members.length - 3}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="keyboard-assignment">
+                        <div class="assignment-arrow">↓</div>
+                        <div class="keyboard-slot" data-team-id="${team.id}">
+                            ${assignedKeyboard ? `
+                                <div class="assigned-keyboard">
+                                    <div class="keyboard-name">${this.escapeHtml(assignedKeyboard.name)}</div>
+                                    <div class="keyboard-info">ID: ${this.escapeHtml(assignedKeyboard.id)}</div>
+                                    <button onclick="keyboardManager.unassignKeyboard('${team.id}')" class="btn-mini btn-danger">×</button>
+                                </div>
+                            ` : `
+                                <div class="unassigned-slot">
+                                    <div class="slot-placeholder">キーボード未割り当て</div>
+                                    <select onchange="keyboardManager.assignSpecificKeyboard('${team.id}', this.value)" class="keyboard-selector">
+                                        <option value="">選択してください</option>
+                                        ${this.keyboards.filter(kb => !kb.assignedTeamId).map(kb =>
+                                            `<option value="${kb.id}">${this.escapeHtml(kb.name)} (${kb.id})</option>`
+                                        ).join('')}
+                                    </select>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+
+        // 未割り当てキーボード一覧
+        const unassignedKeyboards = this.keyboards.filter(kb => !kb.assignedTeamId);
+        if (unassignedKeyboards.length > 0) {
+            html += `
+                <div class="unassigned-keyboards">
+                    <h4>未割り当てキーボード</h4>
+                    <div class="keyboard-list">
+                        ${unassignedKeyboards.map(kb => `
+                            <div class="keyboard-item">
+                                <div class="keyboard-name">${this.escapeHtml(kb.name)}</div>
+                                <div class="keyboard-id">ID: ${this.escapeHtml(kb.id)}</div>
+                                <div class="keyboard-status ${kb.connected ? 'connected' : 'disconnected'}">
+                                    ${kb.connected ? '🟢 接続中' : '🔴 未接続'}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        return html;
+    }
+
+    assignKeyboards() {
+        const method = document.querySelector('input[name="keyboardAssignmentMethod"]:checked').value;
+
+        if (this.keyboards.length < this.teams.length) {
+            alert(`キーボードが不足しています。\n必要: ${this.teams.length}台、検知済み: ${this.keyboards.length}台\n\nキーボードを追加接続してから「🔄 再検索」を押してください。`);
+            return;
+        }
+
+        // 既存の割り当てをクリア
+        this.keyboards.forEach(kb => delete kb.assignedTeamId);
+
+        if (method === 'auto') {
+            // 自動割り当て: 接続済みキーボードを優先して割り当て
+            const connectedKeyboards = this.keyboards.filter(kb => kb.connected);
+            const disconnectedKeyboards = this.keyboards.filter(kb => !kb.connected);
+            const availableKeyboards = [...connectedKeyboards, ...disconnectedKeyboards];
+
+            this.teams.forEach((team, index) => {
+                if (index < availableKeyboards.length) {
+                    availableKeyboards[index].assignedTeamId = team.id;
+                }
+            });
+
+            this.addToActivityLog(`[システム] キーボードを自動割り当てしました`, 'system');
+        }
+
+        // 表示を更新
+        this.updateKeyboardAssignmentDisplay();
+
+        // 完了状態を確認
+        this.checkKeyboardAssignmentCompletion();
+    }
+
+    assignSpecificKeyboard(teamId, keyboardId) {
+        if (!keyboardId) return;
+
+        const keyboard = this.keyboards.find(kb => kb.id === keyboardId);
+        const team = this.teams.find(t => t.id === teamId);
+
+        if (keyboard && team) {
+            // 既存の割り当てをクリア
+            keyboard.assignedTeamId = teamId;
+
+            this.updateKeyboardAssignmentDisplay();
+            this.checkKeyboardAssignmentCompletion();
+
+            this.addToActivityLog(`[システム] ${team.name}に${keyboard.name}を割り当てました`, 'system');
+        }
+    }
+
+    unassignKeyboard(teamId) {
+        const keyboard = this.keyboards.find(kb => kb.assignedTeamId === teamId);
+        const team = this.teams.find(t => t.id === teamId);
+
+        if (keyboard && team) {
+            delete keyboard.assignedTeamId;
+
+            this.updateKeyboardAssignmentDisplay();
+            this.checkKeyboardAssignmentCompletion();
+
+            this.addToActivityLog(`[システム] ${team.name}から${keyboard.name}の割り当てを解除しました`, 'system');
+        }
+    }
+
+    clearKeyboardAssignments() {
+        this.keyboards.forEach(kb => delete kb.assignedTeamId);
+
+        this.updateKeyboardAssignmentDisplay();
+        this.checkKeyboardAssignmentCompletion();
+
+        this.addToActivityLog(`[システム] すべてのキーボード割り当てをクリアしました`, 'system');
+    }
+
+    updateKeyboardAssignmentDisplay() {
+        const display = document.getElementById('keyboard-assignment-display');
+        if (display) {
+            display.innerHTML = this.generateKeyboardAssignmentDisplay();
+        }
+
+        // キーボード数表示を更新
+        const availableCount = document.getElementById('available-keyboard-count');
+        const requiredCount = document.getElementById('required-keyboard-count');
+        if (availableCount) availableCount.textContent = this.keyboards.length;
+        if (requiredCount) requiredCount.textContent = this.teams.length;
+    }
+
+    checkKeyboardAssignmentCompletion() {
+        const assignedTeams = this.teams.filter(team =>
+            this.keyboards.some(kb => kb.assignedTeamId === team.id)
+        );
+
+        const isComplete = assignedTeams.length === this.teams.length;
+
+        const summary = document.getElementById('keyboard-assignment-summary');
+        const proceedBtn = document.getElementById('proceedToTargetBtn');
+
+        if (summary && proceedBtn) {
+            if (isComplete) {
+                summary.style.display = 'flex';
+                proceedBtn.disabled = false;
+                this.updateStatus('1.5 キーボード割り当て完了 - 次は1.6お題数設定です');
+            } else {
+                summary.style.display = 'none';
+                proceedBtn.disabled = true;
+            }
+        }
+    }
+
+    proceedToTargetSetting() {
+        this.addToActivityLog(`[システム] 1.6 お題数設定へ進みます`, 'system');
+        this.updateStatus('1.6 お題数設定の準備中...');
+
+        // フェーズ切り替え
+        this.currentPhase = '1.6';
+        this.updatePhaseDisplay();
+
+        // TODO: 1.6の実装
+        alert(`キーボード割り当て完了！\n次は「1.6 お題数設定」の実装を進めましょう！`);
     }
 
     escapeHtml(text) {
