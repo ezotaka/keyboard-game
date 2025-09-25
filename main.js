@@ -156,7 +156,10 @@ class KeyboardGameApp {
         try {
             // Native Addonによる直接キーイベントキャプチャ
             const success = keyboardDetector.setKeyEventCallback((keyEvent) => {
-                console.log(`🎹 Real Input - KB-${keyEvent.keyboardId}: "${keyEvent.keyName}"`);
+                // ログを制限（デバッグ時のみ出力）
+                if (process.argv.includes('--verbose')) {
+                    console.log(`🎹 Real Input - KB-${keyEvent.keyboardId}: "${keyEvent.keyName}"`);
+                }
 
                 // 正確なキーボードIDを含むイベントを送信
                 const realKeyEvent = {
@@ -220,7 +223,10 @@ class KeyboardGameApp {
             }
         };
 
-        console.log(`⌨️ Fallback Input: "${input.key}"`);
+        // ログを制限（デバッグ時のみ出力）
+        if (process.argv.includes('--verbose')) {
+            console.log(`⌨️ Fallback Input: "${input.key}"`);
+        }
 
         // 入力履歴に追加
         this.inputHistory.push(keyEvent);
@@ -233,8 +239,15 @@ class KeyboardGameApp {
     }
 
     sendToRenderer(channel, data) {
-        if (this.mainWindow) {
-            this.mainWindow.webContents.send(channel, data);
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+            try {
+                this.mainWindow.webContents.send(channel, data);
+            } catch (error) {
+                // パイプエラーを抑制
+                if (error.code !== 'EPIPE') {
+                    console.error('Renderer通信エラー:', error.code);
+                }
+            }
         }
     }
 
@@ -259,6 +272,18 @@ class KeyboardGameApp {
         });
     }
 }
+
+// グローバルエラーハンドラー
+process.on('uncaughtException', (error) => {
+    if (error.code === 'EPIPE') {
+        return; // パイプエラーを抑制
+    }
+    console.error('Uncaught Exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
 
 // Electronアプリケーション初期化
 const keyboardGameApp = new KeyboardGameApp();

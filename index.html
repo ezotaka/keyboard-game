@@ -609,6 +609,216 @@
             font-weight: bold;
             font-size: 0.9em;
         }
+
+        /* Phase 2: ゲームフェーズスタイル */
+        .current-turn-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .turn-header h4 {
+            margin: 0 0 15px 0;
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        .turn-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .current-team, .current-player {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .word-display-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        .word-display {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            text-align: center;
+            border: 4px solid #4299e1;
+            min-width: 400px;
+        }
+
+        .word-original {
+            font-size: 3em;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-family: serif;
+        }
+
+        .word-romaji {
+            font-size: 2.5em;
+            color: #4299e1;
+            margin-bottom: 20px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-weight: bold;
+        }
+
+        .word-progress {
+            font-size: 2em;
+            font-family: 'Monaco', 'Menlo', monospace;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .typed-part {
+            background: #48bb78;
+            color: white;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .remaining-part {
+            color: #a0aec0;
+        }
+
+        .teams-progress {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .team-progress-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 3px solid;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .team-progress-card.team-1 { border-color: #ff6b6b; }
+        .team-progress-card.team-2 { border-color: #4ecdc4; }
+        .team-progress-card.team-3 { border-color: #45b7d1; }
+        .team-progress-card.team-4 { border-color: #f9ca24; }
+
+        .team-progress-card.active {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .team-progress-header {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .team-progress-card.team-1 .team-progress-header { color: #ff6b6b; }
+        .team-progress-card.team-2 .team-progress-header { color: #4ecdc4; }
+        .team-progress-card.team-3 .team-progress-header { color: #45b7d1; }
+        .team-progress-card.team-4 .team-progress-header { color: #f9ca24; }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #48bb78 0%, #68d391 100%);
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        .progress-text {
+            font-weight: bold;
+            color: #2d3748;
+            margin-top: 5px;
+        }
+
+        .game-controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        /* Phase 3: 結果フェーズスタイル */
+        .result-display {
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .winner-announcement {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 30px;
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-10px); }
+        }
+
+        .results-table {
+            background: white;
+            color: #2d3748;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+        }
+
+        .result-position {
+            font-size: 1.5em;
+            font-weight: bold;
+            width: 60px;
+        }
+
+        .result-team {
+            flex: 1;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .result-time {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -763,8 +973,62 @@
                 </div>
             </div>
         </div>
+
+        <!-- Phase 2: ゲームフェーズ -->
+        <div class="section hidden" id="game-section">
+            <h3>🎮 ゲーム進行中</h3>
+
+            <!-- 現在のターン表示 -->
+            <div class="current-turn-display" id="current-turn">
+                <div class="turn-header">
+                    <h4>現在のターン</h4>
+                    <div class="turn-info">
+                        <span class="current-team" id="current-team-name">チーム A</span>
+                        <span class="current-player" id="current-player-name">たろう くん</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- お題表示エリア -->
+            <div class="word-display-container">
+                <div class="word-display" id="word-display">
+                    <div class="word-original" id="word-original">りんご</div>
+                    <div class="word-romaji" id="word-romaji">ringo</div>
+                    <div class="word-progress" id="word-progress">
+                        <span class="typed-part" id="typed-part"></span>
+                        <span class="remaining-part" id="remaining-part">ringo</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 各チームの進捗表示 -->
+            <div class="teams-progress" id="teams-progress">
+                <!-- チームプログレス表示 -->
+            </div>
+
+            <!-- ゲーム制御 -->
+            <div class="game-controls">
+                <button onclick="pauseGame()" id="pauseGameBtn" class="secondary">⏸️ 一時停止</button>
+                <button onclick="resetGame()" class="btn-danger">🔄 ゲームリセット</button>
+            </div>
+        </div>
+
+        <!-- Phase 3: 結果フェーズ -->
+        <div class="section hidden" id="result-section">
+            <h3>🏆 ゲーム結果</h3>
+
+            <div class="result-display" id="result-display">
+                <!-- 結果表示 -->
+            </div>
+
+            <div class="game-controls">
+                <button onclick="restartGame()" id="restartGameBtn">🆕 新しいゲーム</button>
+                <button onclick="backToSetup()" class="secondary">⚙️ 設定に戻る</button>
+            </div>
+        </div>
     </div>
 
+    <script src="words.js"></script>
     <script src="renderer.js"></script>
 </body>
 </html>

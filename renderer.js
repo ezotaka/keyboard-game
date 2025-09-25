@@ -17,6 +17,16 @@ class KeyboardConnectionManager {
         this.teamCount = 2;
         this.divisionMethod = 'auto';
 
+        // ゲーム管理
+        this.gameState = 'setup'; // 'setup', 'playing', 'finished'
+        this.currentTeamIndex = 0;
+        this.currentPlayerIndex = 0;
+        this.currentWord = null;
+        this.currentInput = '';
+        this.gameStartTime = null;
+        this.teamCompletionTimes = new Map();
+        this.usedWords = new Set();
+
         this.init();
     }
 
@@ -54,7 +64,9 @@ class KeyboardConnectionManager {
 
         // リアルタイム入力イベント
         window.electronAPI.onRealKeyInput((keyEvent) => {
-            if (this.isMonitoring) {
+            if (this.gameState === 'playing') {
+                this.handleGameKeyInput(keyEvent);
+            } else if (this.isMonitoring) {
                 this.handleRealKeyInput(keyEvent);
             }
         });
@@ -91,6 +103,12 @@ class KeyboardConnectionManager {
         window.movePlayerToTeam = (playerId, teamId) => this.movePlayerToTeam(playerId, teamId);
         window.removePlayerFromTeam = (playerId) => this.removePlayerFromTeam(playerId);
         window.proceedToMemberAssignment = () => this.proceedToMemberAssignment();
+
+        // ゲーム関数
+        window.pauseGame = () => this.pauseGame();
+        window.resetGame = () => this.resetGame();
+        window.restartGame = () => this.restartGame();
+        window.backToSetup = () => this.backToSetup();
 
         // エンターキーでプレイヤー追加
         const playerNameInput = document.getElementById('playerName');
@@ -1593,12 +1611,63 @@ class KeyboardConnectionManager {
     }
 
     startFinalGame() {
+        console.log('=== ゲーム開始 ===');
         this.addToActivityLog(`[システム] ゲーム開始！`, 'system');
         this.updateStatus('ゲーム開始！');
 
-        // ゲーム画面への遷移処理
-        // TODO: 実際のゲーム開始ロジックを実装
-        alert(`🎮 ゲーム開始！\n\n各チーム ${this.teams[0]?.targetCount || 5}問のクリアを目指してがんばってください！\n\n※ゲームロジックは次の開発フェーズで実装予定です`);
+        // ゲーム状態を初期化
+        this.gameState = 'playing';
+        this.currentPhase = '2.1';
+        this.currentTeamIndex = 0;
+        this.currentPlayerIndex = 0;
+        this.currentInput = '';
+        this.gameStartTime = Date.now();
+        this.teamCompletionTimes.clear();
+        this.usedWords.clear();
+
+        // 各チームの進捗を初期化 & プレイヤーにキーボードID割り当て
+        this.teams.forEach(team => {
+            team.completedWords = 0;
+            team.startTime = Date.now();
+            team.finished = false;
+            team.finishTime = null;
+
+            // チームに割り当てられたキーボードIDを各メンバーに設定
+            const assignedKeyboard = this.keyboards.find(kb => kb.assignedTeamId === team.id);
+            if (assignedKeyboard) {
+                team.members.forEach(member => {
+                    member.keyboardId = assignedKeyboard.id;
+                });
+                this.addToActivityLog(`[システム] ${team.name}のメンバーにキーボード${assignedKeyboard.id}を割り当てました`, 'system');
+            } else {
+                // フォールバック: チームインデックスに基づいてキーボードを割り当て
+                const fallbackKeyboard = this.keyboards[this.teams.indexOf(team)];
+                if (fallbackKeyboard) {
+                    team.members.forEach(member => {
+                        member.keyboardId = fallbackKeyboard.id;
+                    });
+                    this.addToActivityLog(`[システム] ${team.name}のメンバーにフォールバックキーボード${fallbackKeyboard.id}を割り当てました`, 'system');
+                } else {
+                    this.addToActivityLog(`[警告] ${team.name}にキーボードを割り当てできませんでした`, 'system');
+                }
+            }
+        });
+
+        // セットアップセクションを非表示にしてゲームセクションを表示
+        this.hideAllSections();
+        this.showGameSection();
+
+        // 最初の単語を設定
+        this.setNewWord();
+
+        // ターン表示を更新
+        this.updateTurnDisplay();
+
+        // チーム進捗を更新
+        this.updateTeamProgress();
+
+        this.updatePhaseDisplay();
+        this.addToActivityLog(`[ゲーム] ${this.getCurrentTeam().name} のターン開始`, 'game');
     }
 
     backToKeyboardAssignment() {
@@ -1631,6 +1700,357 @@ class KeyboardConnectionManager {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // ===== ゲーム関連メソッド =====
+
+    hideAllSections() {
+        // すべてのセクションを非表示
+        const sections = [
+            'keyboard-section', 'players-section', 'teams-section',
+            'game-start-section', 'game-section', 'result-section'
+        ];
+
+        sections.forEach(sectionId => {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                section.classList.add('hidden');
+            }
+        });
+
+        // setup-panelも非表示
+        const setupPanels = document.querySelectorAll('.setup-panel');
+        setupPanels.forEach(panel => panel.style.display = 'none');
+    }
+
+    showGameSection() {
+        const gameSection = document.getElementById('game-section');
+        if (gameSection) {
+            gameSection.classList.remove('hidden');
+        }
+    }
+
+    getCurrentTeam() {
+        return this.teams[this.currentTeamIndex];
+    }
+
+    getCurrentPlayer() {
+        const team = this.getCurrentTeam();
+        return team ? team.members[this.currentPlayerIndex] : null;
+    }
+
+    setNewWord() {
+        const team = this.getCurrentTeam();
+        if (!team) return;
+
+        const difficulty = team.difficulty || 'easy';
+        let word = getRandomWord(difficulty);
+
+        // 重複回避（最大10回試行）
+        let attempts = 0;
+        while (this.usedWords.has(word.hiragana) && attempts < 10) {
+            word = getRandomWord(difficulty);
+            attempts++;
+        }
+
+        this.currentWord = word;
+        this.currentInput = '';
+        this.usedWords.add(word.hiragana);
+
+        // UI更新
+        this.updateWordDisplay();
+    }
+
+    updateTurnDisplay() {
+        const team = this.getCurrentTeam();
+        const player = this.getCurrentPlayer();
+
+        if (!team || !player) return;
+
+        const teamNameEl = document.getElementById('current-team-name');
+        const playerNameEl = document.getElementById('current-player-name');
+
+        if (teamNameEl) {
+            teamNameEl.textContent = team.name;
+        }
+
+        if (playerNameEl) {
+            playerNameEl.textContent = `${player.name} さん`;
+        }
+    }
+
+    updateWordDisplay() {
+        if (!this.currentWord) return;
+
+        const originalEl = document.getElementById('word-original');
+        const romajiEl = document.getElementById('word-romaji');
+        const typedEl = document.getElementById('typed-part');
+        const remainingEl = document.getElementById('remaining-part');
+
+        if (originalEl) originalEl.textContent = this.currentWord.hiragana;
+        if (romajiEl) romajiEl.textContent = this.currentWord.romaji;
+
+        if (typedEl && remainingEl) {
+            const typed = this.currentInput;
+            const remaining = this.currentWord.romaji.slice(typed.length);
+
+            typedEl.textContent = typed;
+            remainingEl.textContent = remaining;
+        }
+    }
+
+    updateTeamProgress() {
+        const progressContainer = document.getElementById('teams-progress');
+        if (!progressContainer) return;
+
+        progressContainer.innerHTML = '';
+
+        this.teams.forEach((team, index) => {
+            const isActive = index === this.currentTeamIndex;
+            const progressPercent = (team.completedWords / team.targetCount) * 100;
+
+            const teamCard = document.createElement('div');
+            teamCard.className = `team-progress-card team-${index + 1} ${isActive ? 'active' : ''}`;
+
+            teamCard.innerHTML = `
+                <div class="team-progress-header">${team.name}</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                </div>
+                <div class="progress-text">
+                    ${team.completedWords} / ${team.targetCount} 問
+                    ${team.finished ? `<br><small>完了: ${this.formatTime(team.finishTime - team.startTime)}</small>` : ''}
+                </div>
+            `;
+
+            progressContainer.appendChild(teamCard);
+        });
+    }
+
+    handleGameKeyInput(keyEvent) {
+        // 現在のプレイヤーのキーボードかチェック
+        const team = this.getCurrentTeam();
+        const player = this.getCurrentPlayer();
+
+        console.log(`[ゲーム入力] キーイベント受信:`, {
+            keyboardId: keyEvent.keyboardId,
+            key: keyEvent.key,
+            team: team?.name,
+            player: player?.name,
+            playerKeyboardId: player?.keyboardId
+        });
+
+        if (!team || !player || !this.currentWord) {
+            console.log('[ゲーム入力] 必要な情報が不足:', { team: !!team, player: !!player, currentWord: !!this.currentWord });
+            return;
+        }
+
+        // キーボードIDが現在のプレイヤーと一致するかチェック
+        if (keyEvent.keyboardId !== player.keyboardId) {
+            console.log(`[ゲーム入力] キーボードID不一致: expected ${player.keyboardId}, got ${keyEvent.keyboardId}`);
+            return;
+        }
+
+        const key = keyEvent.key.toLowerCase();
+
+        // 英数字のみを受け付け
+        if (!/^[a-z0-9-]$/.test(key)) {
+            console.log(`[ゲーム入力] 無効なキー: ${key}`);
+            return;
+        }
+
+        console.log(`[ゲーム入力] 有効な入力処理: ${key}`);
+        this.processKeyInput(key);
+    }
+
+    processKeyInput(key) {
+        if (!this.currentWord) return;
+
+        const expectedChar = this.currentWord.romaji[this.currentInput.length];
+
+        if (key === expectedChar) {
+            // 正しい入力
+            this.currentInput += key;
+            this.updateWordDisplay();
+
+            // 単語完成チェック
+            if (this.currentInput === this.currentWord.romaji) {
+                this.completeWord();
+            }
+        } else {
+            // 間違った入力（何もしない、またはエラー表示）
+            // ログを制限（デバッグ用）
+            if (Math.random() < 0.1) { // 10%の確率でのみログ出力
+                console.log(`Wrong key: expected '${expectedChar}', got '${key}'`);
+            }
+            // オプション: エラー表示やエラー音
+        }
+    }
+
+    completeWord() {
+        const team = this.getCurrentTeam();
+        if (!team) return;
+
+        // チームの完了単語数を増加
+        team.completedWords++;
+
+        this.addToActivityLog(`[ゲーム] ${team.name} が「${this.currentWord.hiragana}」をクリア！`, 'game');
+
+        // チーム完了チェック
+        if (team.completedWords >= team.targetCount) {
+            team.finished = true;
+            team.finishTime = Date.now();
+            this.teamCompletionTimes.set(team.name, team.finishTime - team.startTime);
+
+            this.addToActivityLog(`[ゲーム] ${team.name} がゴール！ (${this.formatTime(team.finishTime - team.startTime)})`, 'game');
+
+            // すべてのチームが完了したかチェック
+            if (this.teams.every(t => t.finished)) {
+                this.finishGame();
+                return;
+            }
+        }
+
+        // 次のターンへ
+        this.nextTurn();
+    }
+
+    nextTurn() {
+        const team = this.getCurrentTeam();
+        if (!team) return;
+
+        // 次のプレイヤーへ
+        this.currentPlayerIndex++;
+        if (this.currentPlayerIndex >= team.members.length) {
+            this.currentPlayerIndex = 0;
+
+            // 次のチームへ（未完了チームのみ）
+            do {
+                this.currentTeamIndex = (this.currentTeamIndex + 1) % this.teams.length;
+            } while (this.getCurrentTeam().finished && !this.teams.every(t => t.finished));
+        }
+
+        // 新しい単語を設定
+        this.setNewWord();
+        this.updateTurnDisplay();
+        this.updateTeamProgress();
+
+        const newTeam = this.getCurrentTeam();
+        const newPlayer = this.getCurrentPlayer();
+        this.addToActivityLog(`[ゲーム] ${newTeam.name} の ${newPlayer.name} さんのターン`, 'game');
+    }
+
+    finishGame() {
+        this.gameState = 'finished';
+        this.currentPhase = '3.1';
+        this.updatePhaseDisplay();
+
+        this.addToActivityLog(`[ゲーム] 全チーム完了！ゲーム終了`, 'game');
+        this.showResultSection();
+    }
+
+    showResultSection() {
+        this.hideAllSections();
+
+        const resultSection = document.getElementById('result-section');
+        if (resultSection) {
+            resultSection.classList.remove('hidden');
+        }
+
+        this.updateResultDisplay();
+    }
+
+    updateResultDisplay() {
+        const resultContainer = document.getElementById('result-display');
+        if (!resultContainer) return;
+
+        // チームを完了時間でソート
+        const sortedTeams = [...this.teams].sort((a, b) => {
+            if (a.finishTime && b.finishTime) {
+                return (a.finishTime - a.startTime) - (b.finishTime - b.startTime);
+            }
+            if (a.finishTime) return -1;
+            if (b.finishTime) return 1;
+            return 0;
+        });
+
+        const winner = sortedTeams[0];
+
+        resultContainer.innerHTML = `
+            <div class="winner-announcement">
+                🏆 優勝: ${winner.name} 🏆
+            </div>
+            <div class="results-table">
+                ${sortedTeams.map((team, index) => `
+                    <div class="result-row">
+                        <div class="result-position">${index + 1}位</div>
+                        <div class="result-team">${team.name}</div>
+                        <div class="result-time">
+                            ${team.finishTime ? this.formatTime(team.finishTime - team.startTime) : '未完了'}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    formatTime(milliseconds) {
+        const seconds = Math.floor(milliseconds / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    // ゲーム制御メソッド
+    pauseGame() {
+        if (this.gameState === 'playing') {
+            this.gameState = 'paused';
+            this.addToActivityLog(`[ゲーム] ゲーム一時停止`, 'system');
+            // TODO: 一時停止UI表示
+        } else if (this.gameState === 'paused') {
+            this.gameState = 'playing';
+            this.addToActivityLog(`[ゲーム] ゲーム再開`, 'system');
+        }
+    }
+
+    resetGame() {
+        if (confirm('ゲームをリセットしますか？進行中のデータは失われます。')) {
+            this.gameState = 'setup';
+            this.currentPhase = '1.7';
+            this.hideAllSections();
+            this.showGameStartSection();
+            this.addToActivityLog(`[システム] ゲームリセット`, 'system');
+        }
+    }
+
+    restartGame() {
+        if (confirm('新しいゲームを開始しますか？')) {
+            this.gameState = 'setup';
+            this.currentPhase = '1.1';
+            this.players = [];
+            this.teams = [];
+            this.hideAllSections();
+
+            // プレイヤーセクションを表示
+            const playersSection = document.getElementById('players-section');
+            if (playersSection) {
+                playersSection.classList.remove('hidden');
+            }
+
+            this.updatePhaseDisplay();
+            this.addToActivityLog(`[システム] 新しいゲーム開始`, 'system');
+        }
+    }
+
+    backToSetup() {
+        if (confirm('セットアップに戻りますか？')) {
+            this.gameState = 'setup';
+            this.currentPhase = '1.6';
+            this.hideAllSections();
+            this.showTargetCountSection();
+            this.updatePhaseDisplay();
+            this.addToActivityLog(`[システム] セットアップに戻る`, 'system');
+        }
     }
 }
 
