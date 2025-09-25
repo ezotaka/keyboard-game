@@ -1356,11 +1356,25 @@ class KeyboardConnectionManager {
     }
 
     showTargetCountSection() {
-        const container = document.querySelector('.setup-panel');
+        // 複数の候補でコンテナを探す
+        let container = document.querySelector('.setup-panel');
+
         if (!container) {
-            console.error('Setup container not found - .setup-panel');
+            // setup-panelが見つからない場合は、最後に追加されたセクションの親を探す
+            container = document.getElementById('keyboard-assignment-section')?.parentNode;
+        }
+
+        if (!container) {
+            // それでも見つからない場合は、game-containerを使用
+            container = document.querySelector('.game-container');
+        }
+
+        if (!container) {
+            console.error('Setup container not found - tried .setup-panel, keyboard-assignment parent, .game-container');
             return;
         }
+
+        console.log('Container found:', container.className || container.id);
 
         // 既存のお題数設定セクションを削除
         const existingSection = document.getElementById('target-count-section');
@@ -1499,11 +1513,26 @@ class KeyboardConnectionManager {
     }
 
     showGameStartSection() {
-        const container = document.querySelector('.setup-panel');
+        // 複数の候補でコンテナを探す
+        let container = document.querySelector('.setup-panel');
+
         if (!container) {
-            console.error('Setup container not found for game start section');
+            // setup-panelが見つからない場合は、最後に追加されたセクションの親を探す
+            container = document.getElementById('target-count-section')?.parentNode ||
+                       document.getElementById('keyboard-assignment-section')?.parentNode;
+        }
+
+        if (!container) {
+            // それでも見つからない場合は、game-containerを使用
+            container = document.querySelector('.game-container');
+        }
+
+        if (!container) {
+            console.error('Game start container not found - tried multiple selectors');
             return;
         }
+
+        console.log('Game start container found:', container.className || container.id);
 
         // 既存のゲーム開始セクションを削除
         const existingSection = document.getElementById('game-start-section');
