@@ -118,6 +118,94 @@ class KeyboardConnectionManager {
                 }
             });
         }
+
+        // 開発プリセットの初期化
+        this.initializeDevPresets();
+    }
+
+    // 開発用プリセットの読み込みと適用
+    async initializeDevPresets() {
+        const select = document.getElementById('devPresetSelect');
+        const applyBtn = document.getElementById('applyDevPresetBtn');
+        const note = document.getElementById('devPresetNote');
+        const bar = document.getElementById('dev-preset-bar');
+
+        if (!select || !applyBtn || !bar) {
+            return; // 古いUIや非対象画面では何もしない
+        }
+
+        try {
+            // dev環境以外では非表示（file: / localhost / 127.0.0.1 のみ表示）
+            const isDev = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            if (!isDev) {
+                bar.style.display = 'none';
+                return;
+            }
+
+            // プリセットJSONを読み込み
+            const res = await fetch('src/config/dev-presets.json');
+            const data = await res.json();
+
+            const presets = data.presets || {};
+            const defaultKey = data.defaultPreset || '';
+
+            // セレクトに流し込む
+            select.innerHTML = '<option value="">プリセットを選択...</option>' +
+                Object.entries(presets).map(([key, p]) => {
+                    const label = `${p.name} - ${p.description || ''}`.trim();
+                    return `<option value="${key}">${label}</option>`;
+                }).join('');
+
+            if (defaultKey && presets[defaultKey]) {
+                select.value = defaultKey;
+                note.style.display = 'block';
+                note.textContent = `デフォルト: ${presets[defaultKey].name}`;
+            }
+
+            applyBtn.addEventListener('click', () => {
+                const key = select.value;
+                if (!key || !presets[key]) {
+                    alert('プリセットを選択してください');
+                    return;
+                }
+                this.applyDevPreset(presets[key]);
+            });
+
+        } catch (e) {
+            console.warn('開発プリセットの読み込みに失敗しました:', e);
+            if (bar) bar.style.display = 'none';
+        }
+    }
+
+    applyDevPreset(preset) {
+        // プレイヤーを流し込み
+        if (Array.isArray(preset.players)) {
+            this.players = preset.players.map(name => ({
+                id: `player-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
+                name,
+                avatar: this.generatePlayerAvatar ? this.generatePlayerAvatar(name) : (name[0] || '?')
+            }));
+            if (typeof this.renderPlayers === 'function') this.renderPlayers();
+            if (typeof this.updatePlayerCount === 'function') this.updatePlayerCount();
+        }
+
+        // チーム数（チーム作成画面のセレクトがあれば反映、なければ内部状態に保持）
+        if (typeof preset.teamCount === 'number') {
+            this.teamCount = preset.teamCount;
+            const teamCountSelect = document.getElementById('teamCount');
+            if (teamCountSelect) {
+                teamCountSelect.value = String(preset.teamCount);
+            }
+        }
+
+        // 進行補助: 1.1 → 1.2 へ誘導
+        if (this.currentPhase === '1.1') {
+            this.proceedToNextStep();
+        }
+
+        this.addToActivityLog('[システム] 開発プリセットを適用しました', 'system');
+        this.updateStatus('開発プリセットを適用しました');
+        alert(`\uD83D\uDE80 プリセット「${preset.name}」を適用しました`);
     }
 
     updateKeyboards(keyboards) {

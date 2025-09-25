@@ -4,7 +4,7 @@
   "description": "Multi-keyboard typing game for kindergarten children",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "npm run build && electron .",
     "dev": "electron . --dev",
     "build": "tsc && npm run copy-assets",
     "copy-assets": "cp src/presentation/index.html dist/presentation/ && cp src/presentation/simple-renderer.js dist/presentation/ && cp -r src/presentation/styles dist/presentation/",

@@ -1,0 +1,104 @@
+{
+  "_comment": "開発・デバッグ用プリセット設定",
+  "presets": {
+    "quick-2team": {
+      "name": "クイック2チーム",
+      "description": "2チームでの動作確認用",
+      "teamCount": 2,
+      "difficulty": "easy",
+      "gameDurationSeconds": 30,
+      "wordCategory": "animals",
+      "players": [
+        "テストプレイヤー1",
+        "テストプレイヤー2",
+        "テストプレイヤー3",
+        "テストプレイヤー4"
+      ],
+      "teamAssignmentStrategy": "sequential",
+      "turnOrderStrategy": "sequential",
+      "soundSettings": {
+        "masterVolume": 50,
+        "soundEffectsEnabled": true,
+        "typingSoundEnabled": true,
+        "backgroundMusicEnabled": false
+      }
+    },
+    "multi-team": {
+      "name": "マルチチーム",
+      "description": "多チームでの動作確認用",
+      "teamCount": 4,
+      "difficulty": "normal",
+      "gameDurationSeconds": 60,
+      "wordCategory": "mixed",
+      "players": [
+        "プレイヤー1",
+        "プレイヤー2",
+        "プレイヤー3",
+        "プレイヤー4",
+        "プレイヤー5",
+        "プレイヤー6",
+        "プレイヤー7",
+        "プレイヤー8"
+      ],
+      "teamAssignmentStrategy": "random",
+      "turnOrderStrategy": "random",
+      "soundSettings": {
+        "masterVolume": 70,
+        "soundEffectsEnabled": true,
+        "typingSoundEnabled": true,
+        "backgroundMusicEnabled": true
+      }
+    },
+    "minimal": {
+      "name": "最小構成",
+      "description": "最小限の設定でのテスト用",
+      "teamCount": 2,
+      "difficulty": "easy",
+      "gameDurationSeconds": 15,
+      "wordCategory": "colors",
+      "players": [
+        "Player1",
+        "Player2"
+      ],
+      "teamAssignmentStrategy": "sequential",
+      "turnOrderStrategy": "sequential",
+      "soundSettings": {
+        "masterVolume": 0,
+        "soundEffectsEnabled": false,
+        "typingSoundEnabled": false,
+        "backgroundMusicEnabled": false
+      }
+    },
+    "full-config": {
+      "name": "フル機能テスト",
+      "description": "すべての機能を有効にしたテスト用",
+      "teamCount": 6,
+      "difficulty": "hard",
+      "gameDurationSeconds": 120,
+      "wordCategory": "school",
+      "players": [
+        "あきら",
+        "かずき",
+        "さくら",
+        "たろう",
+        "なおき",
+        "はなこ",
+        "みさき",
+        "ゆうた",
+        "りな",
+        "わかな",
+        "そうた",
+        "えみ"
+      ],
+      "teamAssignmentStrategy": "manual",
+      "turnOrderStrategy": "alphabetical",
+      "soundSettings": {
+        "masterVolume": 100,
+        "soundEffectsEnabled": true,
+        "typingSoundEnabled": true,
+        "backgroundMusicEnabled": true
+      }
+    }
+  },
+  "defaultPreset": "quick-2team"
+}

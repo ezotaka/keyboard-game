@@ -31,6 +31,7 @@ class KeyboardGameApp {
             title: 'Keyboard Game - 保育園タイピングゲーム'
         });
 
+        // Load the current main UI (new UI)
         await this.mainWindow.loadFile('index.html');
 
         // 開発時はDevToolsを開く

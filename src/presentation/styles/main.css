@@ -1,3 +1,68 @@
+/* 開発用プリセットスタイル */
+.dev-preset-section {
+    display: flex !important; /* 強制表示でテスト */
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    border: 2px dashed #4ECDC4;
+}
+
+.dev-preset-section label {
+    font-size: 0.9rem;
+    color: #4ECDC4;
+    font-weight: bold;
+}
+
+.dev-preset-section select {
+    min-width: 200px;
+}
+
+.btn-accent {
+    background: linear-gradient(135deg, #4ECDC4, #44A08D);
+    color: white;
+    border: none;
+}
+
+.btn-accent:hover {
+    background: linear-gradient(135deg, #44A08D, #4ECDC4);
+    transform: translateY(-2px);
+}
+
+.btn-small {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+}
+
+.player-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 5px 0;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 5px;
+    border-left: 4px solid #4ECDC4;
+}
+
+.player-name {
+    font-weight: 500;
+    color: #2D3748;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #FF6B6B, #EE5A52);
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #EE5A52, #FF6B6B);
+    transform: translateY(-1px);
+}
+
 /* 基本スタイル */
 * {
     margin: 0;
