@@ -19,13 +19,12 @@ class KeyboardConnectionManager {
 
         // ゲーム管理
         this.gameState = 'setup'; // 'setup', 'playing', 'finished'
-        this.currentTeamIndex = 0;
-        this.currentPlayerIndex = 0;
-        this.currentWord = null;
-        this.currentInput = '';
         this.gameStartTime = null;
         this.teamCompletionTimes = new Map();
         this.usedWords = new Set();
+
+        // 同時進行ゲーム用の状態管理
+        this.teamGameStates = new Map(); // 各チームのゲーム状態を管理
 
         this.init();
     }
@@ -1618,14 +1617,12 @@ class KeyboardConnectionManager {
         // ゲーム状態を初期化
         this.gameState = 'playing';
         this.currentPhase = '2.1';
-        this.currentTeamIndex = 0;
-        this.currentPlayerIndex = 0;
-        this.currentInput = '';
         this.gameStartTime = Date.now();
         this.teamCompletionTimes.clear();
         this.usedWords.clear();
+        this.teamGameStates.clear();
 
-        // 各チームの進捗を初期化 & プレイヤーにキーボードID割り当て
+        // 各チームの進捗を初期化 & プレイヤーにキーボードID割り当て & 各チーム独立のゲーム状態設定
         this.teams.forEach(team => {
             team.completedWords = 0;
             team.startTime = Date.now();
@@ -1651,23 +1648,30 @@ class KeyboardConnectionManager {
                     this.addToActivityLog(`[警告] ${team.name}にキーボードを割り当てできませんでした`, 'system');
                 }
             }
+
+            // 各チーム独立のゲーム状態を初期化
+            const teamState = {
+                currentPlayerIndex: 0,
+                currentWord: null,
+                currentInput: '',
+                usedWords: new Set()
+            };
+
+            this.teamGameStates.set(team.id, teamState);
+
+            // 各チームの最初の単語を設定
+            this.setNewWordForTeam(team.id);
         });
 
         // セットアップセクションを非表示にしてゲームセクションを表示
         this.hideAllSections();
         this.showGameSection();
 
-        // 最初の単語を設定
-        this.setNewWord();
-
-        // ターン表示を更新
-        this.updateTurnDisplay();
-
-        // チーム進捗を更新
-        this.updateTeamProgress();
+        // 表示を更新
+        this.updateGameDisplay();
 
         this.updatePhaseDisplay();
-        this.addToActivityLog(`[ゲーム] ${this.getCurrentTeam().name} のターン開始`, 'game');
+        this.addToActivityLog(`[ゲーム] 全チーム同時進行開始！`, 'game');
     }
 
     backToKeyboardAssignment() {
@@ -1730,73 +1734,92 @@ class KeyboardConnectionManager {
         }
     }
 
-    getCurrentTeam() {
-        return this.teams[this.currentTeamIndex];
-    }
+    // 各チーム用の新しい単語設定
+    setNewWordForTeam(teamId) {
+        const team = this.teams.find(t => t.id === teamId);
+        const teamState = this.teamGameStates.get(teamId);
 
-    getCurrentPlayer() {
-        const team = this.getCurrentTeam();
-        return team ? team.members[this.currentPlayerIndex] : null;
-    }
-
-    setNewWord() {
-        const team = this.getCurrentTeam();
-        if (!team) return;
+        if (!team || !teamState) return;
 
         const difficulty = team.difficulty || 'easy';
         let word = getRandomWord(difficulty);
 
         // 重複回避（最大10回試行）
         let attempts = 0;
-        while (this.usedWords.has(word.hiragana) && attempts < 10) {
+        while (teamState.usedWords.has(word.hiragana) && attempts < 10) {
             word = getRandomWord(difficulty);
             attempts++;
         }
 
-        this.currentWord = word;
-        this.currentInput = '';
+        teamState.currentWord = word;
+        teamState.currentInput = '';
+        teamState.usedWords.add(word.hiragana);
+
+        // 全体のusedWordsにも追加（重複避けのため）
         this.usedWords.add(word.hiragana);
 
-        // UI更新
-        this.updateWordDisplay();
+        this.addToActivityLog(`[${team.name}] 新しいお題: ${word.hiragana} (${word.romaji})`, 'game');
     }
 
-    updateTurnDisplay() {
-        const team = this.getCurrentTeam();
-        const player = this.getCurrentPlayer();
+    // 現在のプレイヤーを取得（チーム別）
+    getCurrentPlayerForTeam(teamId) {
+        const team = this.teams.find(t => t.id === teamId);
+        const teamState = this.teamGameStates.get(teamId);
 
-        if (!team || !player) return;
+        if (!team || !teamState) return null;
 
-        const teamNameEl = document.getElementById('current-team-name');
-        const playerNameEl = document.getElementById('current-player-name');
-
-        if (teamNameEl) {
-            teamNameEl.textContent = team.name;
-        }
-
-        if (playerNameEl) {
-            playerNameEl.textContent = `${player.name} さん`;
-        }
+        return team.members[teamState.currentPlayerIndex] || null;
     }
 
-    updateWordDisplay() {
-        if (!this.currentWord) return;
+    // 同時進行用の画面更新
+    updateGameDisplay() {
+        this.updateTeamsGameDisplay();
+        this.updateTeamProgress();
+    }
 
-        const originalEl = document.getElementById('word-original');
-        const romajiEl = document.getElementById('word-romaji');
-        const typedEl = document.getElementById('typed-part');
-        const remainingEl = document.getElementById('remaining-part');
+    updateTeamsGameDisplay() {
+        const container = document.getElementById('teams-game-display');
+        if (!container) return;
 
-        if (originalEl) originalEl.textContent = this.currentWord.hiragana;
-        if (romajiEl) romajiEl.textContent = this.currentWord.romaji;
+        container.innerHTML = '';
 
-        if (typedEl && remainingEl) {
-            const typed = this.currentInput;
-            const remaining = this.currentWord.romaji.slice(typed.length);
+        this.teams.forEach((team, index) => {
+            const teamState = this.teamGameStates.get(team.id);
+            const currentPlayer = this.getCurrentPlayerForTeam(team.id);
 
-            typedEl.textContent = typed;
-            remainingEl.textContent = remaining;
-        }
+            if (!teamState || !currentPlayer) return;
+
+            const teamCard = document.createElement('div');
+            teamCard.className = `team-game-card team-${index + 1} ${team.finished ? 'finished' : ''}`;
+
+            const typedText = teamState.currentInput || '';
+            const remainingText = teamState.currentWord ? teamState.currentWord.romaji.slice(typedText.length) : '';
+
+            teamCard.innerHTML = `
+                <div class="team-game-header">
+                    <div class="team-game-name">${this.escapeHtml(team.name)}</div>
+                    <div class="team-current-player">
+                        ${team.finished ? '🏆 完了' : `▶️ ${this.escapeHtml(currentPlayer.name)}`}
+                    </div>
+                </div>
+                <div class="team-word-display">
+                    <div class="team-word-original">${teamState.currentWord ? this.escapeHtml(teamState.currentWord.hiragana) : 'お疲れさま！'}</div>
+                    <div class="team-word-romaji">${teamState.currentWord ? this.escapeHtml(teamState.currentWord.romaji) : ''}</div>
+                    <div class="team-word-progress">
+                        <span class="team-typed-part">${this.escapeHtml(typedText)}</span>
+                        <span class="team-remaining-part">${this.escapeHtml(remainingText)}</span>
+                    </div>
+                </div>
+                <div class="team-score-info">
+                    <div class="team-completed-count">${team.completedWords} / ${team.targetCount} 問</div>
+                    <div class="team-status ${team.finished ? 'finished' : 'playing'}">
+                        ${team.finished ? '完了' : 'プレイ中'}
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(teamCard);
+        });
     }
 
     updateTeamProgress() {
@@ -1828,26 +1851,41 @@ class KeyboardConnectionManager {
     }
 
     handleGameKeyInput(keyEvent) {
-        // 現在のプレイヤーのキーボードかチェック
-        const team = this.getCurrentTeam();
-        const player = this.getCurrentPlayer();
+        // どのチームのキーボードからの入力か特定
+        let inputTeam = null;
+        let inputPlayer = null;
+
+        for (const team of this.teams) {
+            if (team.finished) continue; // 完了チームはスキップ
+
+            for (const member of team.members) {
+                if (member.keyboardId === keyEvent.keyboardId) {
+                    const teamState = this.teamGameStates.get(team.id);
+                    const currentPlayer = this.getCurrentPlayerForTeam(team.id);
+
+                    // 現在のターンのプレイヤーのみ入力を受け付け
+                    if (currentPlayer && currentPlayer.id === member.id) {
+                        inputTeam = team;
+                        inputPlayer = member;
+                        break;
+                    }
+                }
+            }
+            if (inputTeam) break;
+        }
 
         console.log(`[ゲーム入力] キーイベント受信:`, {
             keyboardId: keyEvent.keyboardId,
             key: keyEvent.key,
-            team: team?.name,
-            player: player?.name,
-            playerKeyboardId: player?.keyboardId
+            team: inputTeam?.name,
+            player: inputPlayer?.name
         });
 
-        if (!team || !player || !this.currentWord) {
-            console.log('[ゲーム入力] 必要な情報が不足:', { team: !!team, player: !!player, currentWord: !!this.currentWord });
-            return;
-        }
-
-        // キーボードIDが現在のプレイヤーと一致するかチェック
-        if (keyEvent.keyboardId !== player.keyboardId) {
-            console.log(`[ゲーム入力] キーボードID不一致: expected ${player.keyboardId}, got ${keyEvent.keyboardId}`);
+        if (!inputTeam || !inputPlayer) {
+            // デバッグログを制限
+            if (Math.random() < 0.1) {
+                console.log('[ゲーム入力] 該当するアクティブプレイヤーが見つかりません');
+            }
             return;
         }
 
@@ -1859,42 +1897,50 @@ class KeyboardConnectionManager {
             return;
         }
 
-        console.log(`[ゲーム入力] 有効な入力処理: ${key}`);
-        this.processKeyInput(key);
+        console.log(`[ゲーム入力] ${inputTeam.name} - ${inputPlayer.name}の有効な入力処理: ${key}`);
+        this.processKeyInputForTeam(inputTeam.id, key);
     }
 
-    processKeyInput(key) {
-        if (!this.currentWord) return;
+    processKeyInputForTeam(teamId, key) {
+        const team = this.teams.find(t => t.id === teamId);
+        const teamState = this.teamGameStates.get(teamId);
 
-        const expectedChar = this.currentWord.romaji[this.currentInput.length];
+        if (!team || !teamState || !teamState.currentWord) return;
+
+        const expectedChar = teamState.currentWord.romaji[teamState.currentInput.length];
 
         if (key === expectedChar) {
             // 正しい入力
-            this.currentInput += key;
-            this.updateWordDisplay();
+            teamState.currentInput += key;
+            console.log(`[${team.name}] 正解: ${key}, 進捗: ${teamState.currentInput}/${teamState.currentWord.romaji}`);
+
+            // UI更新
+            this.updateGameDisplay();
 
             // 単語完成チェック
-            if (this.currentInput === this.currentWord.romaji) {
-                this.completeWord();
+            if (teamState.currentInput === teamState.currentWord.romaji) {
+                this.completeWordForTeam(teamId);
             }
         } else {
             // 間違った入力（何もしない、またはエラー表示）
             // ログを制限（デバッグ用）
-            if (Math.random() < 0.1) { // 10%の確率でのみログ出力
-                console.log(`Wrong key: expected '${expectedChar}', got '${key}'`);
+            if (Math.random() < 0.2) { // 20%の確率でログ出力
+                console.log(`[${team.name}] Wrong key: expected '${expectedChar}', got '${key}'`);
             }
             // オプション: エラー表示やエラー音
         }
     }
 
-    completeWord() {
-        const team = this.getCurrentTeam();
-        if (!team) return;
+    completeWordForTeam(teamId) {
+        const team = this.teams.find(t => t.id === teamId);
+        const teamState = this.teamGameStates.get(teamId);
+
+        if (!team || !teamState) return;
 
         // チームの完了単語数を増加
         team.completedWords++;
 
-        this.addToActivityLog(`[ゲーム] ${team.name} が「${this.currentWord.hiragana}」をクリア！`, 'game');
+        this.addToActivityLog(`[ゲーム] ${team.name} が「${teamState.currentWord.hiragana}」をクリア！`, 'game');
 
         // チーム完了チェック
         if (team.completedWords >= team.targetCount) {
@@ -1909,35 +1955,29 @@ class KeyboardConnectionManager {
                 this.finishGame();
                 return;
             }
+        } else {
+            // 次の単語を設定
+            this.setNewWordForTeam(teamId);
         }
 
-        // 次のターンへ
-        this.nextTurn();
+        // チーム内の次のプレイヤーへ
+        this.nextPlayerInTeam(teamId);
+
+        // UI更新
+        this.updateGameDisplay();
     }
 
-    nextTurn() {
-        const team = this.getCurrentTeam();
-        if (!team) return;
+    nextPlayerInTeam(teamId) {
+        const team = this.teams.find(t => t.id === teamId);
+        const teamState = this.teamGameStates.get(teamId);
 
-        // 次のプレイヤーへ
-        this.currentPlayerIndex++;
-        if (this.currentPlayerIndex >= team.members.length) {
-            this.currentPlayerIndex = 0;
+        if (!team || !teamState) return;
 
-            // 次のチームへ（未完了チームのみ）
-            do {
-                this.currentTeamIndex = (this.currentTeamIndex + 1) % this.teams.length;
-            } while (this.getCurrentTeam().finished && !this.teams.every(t => t.finished));
-        }
+        // チーム内の次のプレイヤーへ
+        teamState.currentPlayerIndex = (teamState.currentPlayerIndex + 1) % team.members.length;
 
-        // 新しい単語を設定
-        this.setNewWord();
-        this.updateTurnDisplay();
-        this.updateTeamProgress();
-
-        const newTeam = this.getCurrentTeam();
-        const newPlayer = this.getCurrentPlayer();
-        this.addToActivityLog(`[ゲーム] ${newTeam.name} の ${newPlayer.name} さんのターン`, 'game');
+        const newPlayer = this.getCurrentPlayerForTeam(teamId);
+        this.addToActivityLog(`[${team.name}] ${newPlayer.name} さんのターン`, 'game');
     }
 
     finishGame() {

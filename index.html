@@ -819,6 +819,136 @@
             font-family: 'Monaco', 'Menlo', monospace;
             font-weight: bold;
         }
+
+        /* 同時進行ゲーム用スタイル */
+        .teams-game-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .team-game-card {
+            background: white;
+            border: 4px solid;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        .team-game-card.team-1 { border-color: #ff6b6b; }
+        .team-game-card.team-2 { border-color: #4ecdc4; }
+        .team-game-card.team-3 { border-color: #45b7d1; }
+        .team-game-card.team-4 { border-color: #f9ca24; }
+
+        .team-game-card.finished {
+            opacity: 0.7;
+            background: #f0f0f0;
+        }
+
+        .team-game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .team-game-name {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .team-game-card.team-1 .team-game-name { color: #ff6b6b; }
+        .team-game-card.team-2 .team-game-name { color: #4ecdc4; }
+        .team-game-card.team-3 .team-game-name { color: #45b7d1; }
+        .team-game-card.team-4 .team-game-name { color: #f9ca24; }
+
+        .team-current-player {
+            background: rgba(66, 153, 225, 0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .team-word-display {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+        }
+
+        .team-word-original {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-family: serif;
+        }
+
+        .team-word-romaji {
+            font-size: 1.8em;
+            color: #4299e1;
+            margin-bottom: 15px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-weight: bold;
+        }
+
+        .team-word-progress {
+            font-size: 1.5em;
+            font-family: 'Monaco', 'Menlo', monospace;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #cbd5e0;
+        }
+
+        .team-typed-part {
+            background: #48bb78;
+            color: white;
+            padding: 3px 6px;
+            border-radius: 4px;
+        }
+
+        .team-remaining-part {
+            color: #a0aec0;
+        }
+
+        .team-score-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.02);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .team-completed-count {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .team-status {
+            font-weight: bold;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+
+        .team-status.playing {
+            background: #48bb78;
+            color: white;
+        }
+
+        .team-status.finished {
+            background: #ed8936;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -976,29 +1106,11 @@
 
         <!-- Phase 2: ゲームフェーズ -->
         <div class="section hidden" id="game-section">
-            <h3>🎮 ゲーム進行中</h3>
+            <h3>🎮 同時進行ゲーム中</h3>
 
-            <!-- 現在のターン表示 -->
-            <div class="current-turn-display" id="current-turn">
-                <div class="turn-header">
-                    <h4>現在のターン</h4>
-                    <div class="turn-info">
-                        <span class="current-team" id="current-team-name">チーム A</span>
-                        <span class="current-player" id="current-player-name">たろう くん</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- お題表示エリア -->
-            <div class="word-display-container">
-                <div class="word-display" id="word-display">
-                    <div class="word-original" id="word-original">りんご</div>
-                    <div class="word-romaji" id="word-romaji">ringo</div>
-                    <div class="word-progress" id="word-progress">
-                        <span class="typed-part" id="typed-part"></span>
-                        <span class="remaining-part" id="remaining-part">ringo</span>
-                    </div>
-                </div>
+            <!-- 各チームの状態表示 -->
+            <div class="teams-game-display" id="teams-game-display">
+                <!-- 各チーム別のゲーム状態 -->
             </div>
 
             <!-- 各チームの進捗表示 -->
