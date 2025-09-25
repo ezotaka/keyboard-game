@@ -1051,6 +1051,9 @@ class KeyboardConnectionManager {
 
         this.updateStatus('1.5 キーボード割り当て - 各チームにキーボードを割り当てましょう');
         this.addToActivityLog(`[システム] 1.5 キーボード割り当てセクションを表示しました`, 'system');
+
+        // 自動割り当てを実行
+        this.autoAssignKeyboards();
     }
 
     createKeyboardAssignmentSection() {
@@ -1087,7 +1090,8 @@ class KeyboardConnectionManager {
                 </div>
                 <div class="controls">
                     <button onclick="keyboardManager.assignKeyboards()" id="assignKeyboardsBtn">🎯 キーボード割り当て</button>
-                    <button onclick="keyboardManager.clearKeyboardAssignments()" class="secondary">🔄 割り当てクリア</button>
+                    <button onclick="keyboardManager.autoAssignKeyboards()" class="primary">🔄 自動再割り当て</button>
+                    <button onclick="keyboardManager.clearKeyboardAssignments()" class="secondary">❌ 割り当てクリア</button>
                 </div>
             </div>
 
@@ -1255,6 +1259,53 @@ class KeyboardConnectionManager {
         this.checkKeyboardAssignmentCompletion();
 
         this.addToActivityLog(`[システム] すべてのキーボード割り当てをクリアしました`, 'system');
+    }
+
+    autoAssignKeyboards() {
+        if (this.keyboards.length === 0 || this.teams.length === 0) {
+            console.log('自動割り当て: キーボードまたはチームが見つかりません');
+            alert('キーボードまたはチームが見つかりません。');
+            return;
+        }
+
+        // キーボードが不足している場合の警告
+        if (this.keyboards.length < this.teams.length) {
+            const needMore = this.teams.length - this.keyboards.length;
+            alert(`⚠️ キーボードが不足しています\n\n必要: ${this.teams.length}台\n検知済み: ${this.keyboards.length}台\n不足: ${needMore}台\n\nキーボードを追加接続してから再度お試しください。`);
+            return;
+        }
+
+        // 既存の割り当てをクリアして全て再割り当て
+        this.keyboards.forEach(kb => delete kb.assignedTeamId);
+
+        // 接続済みキーボードを優先して自動割り当て
+        const connectedKeyboards = this.keyboards.filter(kb => kb.connected);
+        const disconnectedKeyboards = this.keyboards.filter(kb => !kb.connected);
+        const availableKeyboards = [...connectedKeyboards, ...disconnectedKeyboards];
+
+        console.log(`自動割り当て: ${this.teams.length}チームに${availableKeyboards.length}キーボードを割り当て中`);
+
+        let assignmentCount = 0;
+        for (let i = 0; i < Math.min(this.teams.length, availableKeyboards.length); i++) {
+            const keyboard = availableKeyboards[i];
+            const team = this.teams[i];
+
+            keyboard.assignedTeamId = team.id;
+            assignmentCount++;
+
+            this.addToActivityLog(`[自動割り当て] ${team.name}に${keyboard.name}を自動割り当てしました`, 'system');
+        }
+
+        this.updateKeyboardAssignmentDisplay();
+        this.checkKeyboardAssignmentCompletion();
+
+        this.addToActivityLog(`[システム] ${assignmentCount}個のキーボードを自動割り当てしました`, 'system');
+
+        if (assignmentCount === this.teams.length) {
+            this.updateStatus('✅ 自動割り当て完了 - すべてのチームにキーボードが割り当てられました');
+        } else {
+            this.updateStatus(`⚠️ 部分的に割り当て完了 - 残り${this.teams.length - assignmentCount}チームは手動で設定してください`);
+        }
     }
 
     updateKeyboardAssignmentDisplay() {
