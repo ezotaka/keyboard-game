@@ -1300,8 +1300,248 @@ class KeyboardConnectionManager {
         this.currentPhase = '1.6';
         this.updatePhaseDisplay();
 
-        // TODO: 1.6の実装
-        alert(`キーボード割り当て完了！\n次は「1.6 お題数設定」の実装を進めましょう！`);
+        // お題数設定UIを表示
+        this.showTargetCountSection();
+    }
+
+    showTargetCountSection() {
+        const container = document.getElementById('setup-container') || document.querySelector('.setup-panel');
+        if (!container) {
+            console.error('Setup container not found');
+            return;
+        }
+
+        // 既存のお題数設定セクションを削除
+        const existingSection = document.getElementById('target-count-section');
+        if (existingSection) {
+            existingSection.remove();
+        }
+
+        const section = document.createElement('div');
+        section.className = 'settings-section';
+        section.id = 'target-count-section';
+
+        section.innerHTML = `
+            <h3>お題数設定 (Phase 1.6)</h3>
+            <div class="target-count-config">
+                <div class="target-count-controls">
+                    <div class="setting-group">
+                        <label for="target-count-input">各チームのクリア目標:</label>
+                        <select id="target-count-input" class="setting-input">
+                            <option value="3">3問</option>
+                            <option value="5" selected>5問</option>
+                            <option value="7">7問</option>
+                            <option value="10">10問</option>
+                            <option value="15">15問</option>
+                            <option value="20">20問</option>
+                        </select>
+                    </div>
+                    <div class="setting-group">
+                        <label for="difficulty-level">お題の難易度:</label>
+                        <select id="difficulty-level" class="setting-input">
+                            <option value="easy">やさしい (3文字以下)</option>
+                            <option value="normal" selected>ふつう (4-6文字)</option>
+                            <option value="hard">むずかしい (7文字以上)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="target-preview">
+                    <h4>設定確認</h4>
+                    <div id="target-settings-preview" class="settings-preview">
+                        <!-- 動的に生成 -->
+                    </div>
+                </div>
+                <div class="target-actions">
+                    <button id="confirm-target-btn" class="btn btn-primary">設定完了</button>
+                    <button id="back-to-keyboard-btn" class="btn btn-secondary">戻る</button>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(section);
+
+        // イベントリスナー設定
+        this.setupTargetCountHandlers();
+
+        // 初期プレビュー表示
+        this.updateTargetPreview();
+
+        this.addToActivityLog(`[システム] お題数設定画面を表示しました`, 'system');
+        this.updateStatus('各チームのクリア目標数を設定してください');
+    }
+
+    setupTargetCountHandlers() {
+        const targetInput = document.getElementById('target-count-input');
+        const difficultySelect = document.getElementById('difficulty-level');
+        const confirmBtn = document.getElementById('confirm-target-btn');
+        const backBtn = document.getElementById('back-to-keyboard-btn');
+
+        // 設定変更時にプレビュー更新
+        [targetInput, difficultySelect].forEach(element => {
+            if (element) {
+                element.addEventListener('change', () => this.updateTargetPreview());
+            }
+        });
+
+        // 設定完了ボタン
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => this.confirmTargetSettings());
+        }
+
+        // 戻るボタン
+        if (backBtn) {
+            backBtn.addEventListener('click', () => this.backToKeyboardAssignment());
+        }
+    }
+
+    updateTargetPreview() {
+        const targetCount = parseInt(document.getElementById('target-count-input')?.value) || 5;
+        const difficulty = document.getElementById('difficulty-level')?.value || 'normal';
+        const preview = document.getElementById('target-settings-preview');
+
+        if (!preview) return;
+
+        const difficultyText = {
+            easy: 'やさしい (3文字以下)',
+            normal: 'ふつう (4-6文字)',
+            hard: 'むずかしい (7文字以上)'
+        };
+
+        preview.innerHTML = `
+            <div class="preview-item">
+                <span class="preview-label">各チームのクリア目標:</span>
+                <span class="preview-value">${targetCount}問</span>
+            </div>
+            <div class="preview-item">
+                <span class="preview-label">お題の難易度:</span>
+                <span class="preview-value">${difficultyText[difficulty]}</span>
+            </div>
+            <div class="preview-item">
+                <span class="preview-label">参加チーム数:</span>
+                <span class="preview-value">${this.teams.length}チーム</span>
+            </div>
+            <div class="preview-item">
+                <span class="preview-label">総問題数:</span>
+                <span class="preview-value">${targetCount * this.teams.length}問</span>
+            </div>
+        `;
+    }
+
+    confirmTargetSettings() {
+        const targetCount = parseInt(document.getElementById('target-count-input')?.value) || 5;
+        const difficulty = document.getElementById('difficulty-level')?.value || 'normal';
+
+        // 各チームにお題数設定を追加
+        this.teams.forEach(team => {
+            team.targetCount = targetCount;
+            team.difficulty = difficulty;
+            team.clearedCount = 0; // クリア済み問題数
+        });
+
+        this.addToActivityLog(`[システム] お題数設定完了: ${targetCount}問 (${difficulty})`, 'system');
+        this.updateStatus('お題数設定が完了しました！ゲーム開始の準備ができています');
+
+        // 次のフェーズ（ゲーム開始）へ
+        this.currentPhase = '1.7';
+        this.updatePhaseDisplay();
+        this.showGameStartSection();
+    }
+
+    showGameStartSection() {
+        const container = document.getElementById('setup-container') || document.querySelector('.setup-panel');
+        if (!container) return;
+
+        // 既存のゲーム開始セクションを削除
+        const existingSection = document.getElementById('game-start-section');
+        if (existingSection) {
+            existingSection.remove();
+        }
+
+        const section = document.createElement('div');
+        section.className = 'settings-section game-ready-section';
+        section.id = 'game-start-section';
+
+        section.innerHTML = `
+            <h3>ゲーム開始準備完了! 🎮</h3>
+            <div class="game-summary">
+                <h4>設定サマリー</h4>
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span class="summary-label">参加プレイヤー:</span>
+                        <span class="summary-value">${this.players.length}名</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">チーム数:</span>
+                        <span class="summary-value">${this.teams.length}チーム</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">各チームクリア目標:</span>
+                        <span class="summary-value">${this.teams[0]?.targetCount || 5}問</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">キーボード割り当て:</span>
+                        <span class="summary-value">完了</span>
+                    </div>
+                </div>
+            </div>
+            <div class="game-start-actions">
+                <button id="start-game-final-btn" class="btn btn-primary btn-large">
+                    🚀 ゲーム開始！
+                </button>
+                <button id="back-to-targets-btn" class="btn btn-secondary">戻る</button>
+            </div>
+        `;
+
+        container.appendChild(section);
+
+        // イベントリスナー設定
+        const startBtn = document.getElementById('start-game-final-btn');
+        const backBtn = document.getElementById('back-to-targets-btn');
+
+        if (startBtn) {
+            startBtn.addEventListener('click', () => this.startFinalGame());
+        }
+
+        if (backBtn) {
+            backBtn.addEventListener('click', () => this.backToTargetSetting());
+        }
+
+        this.addToActivityLog(`[システム] ゲーム開始準備完了`, 'system');
+    }
+
+    startFinalGame() {
+        this.addToActivityLog(`[システム] ゲーム開始！`, 'system');
+        this.updateStatus('ゲーム開始！');
+
+        // ゲーム画面への遷移処理
+        // TODO: 実際のゲーム開始ロジックを実装
+        alert(`🎮 ゲーム開始！\n\n各チーム ${this.teams[0]?.targetCount || 5}問のクリアを目指してがんばってください！\n\n※ゲームロジックは次の開発フェーズで実装予定です`);
+    }
+
+    backToKeyboardAssignment() {
+        // キーボード割り当て画面に戻る
+        const targetSection = document.getElementById('target-count-section');
+        if (targetSection) {
+            targetSection.remove();
+        }
+
+        this.currentPhase = '1.5';
+        this.updatePhaseDisplay();
+        this.showKeyboardAssignmentSection();
+        this.updateStatus('キーボード割り当て画面に戻りました');
+    }
+
+    backToTargetSetting() {
+        // お題数設定画面に戻る
+        const gameStartSection = document.getElementById('game-start-section');
+        if (gameStartSection) {
+            gameStartSection.remove();
+        }
+
+        this.currentPhase = '1.6';
+        this.updatePhaseDisplay();
+        this.showTargetCountSection();
+        this.updateStatus('お題数設定画面に戻りました');
     }
 
     escapeHtml(text) {
