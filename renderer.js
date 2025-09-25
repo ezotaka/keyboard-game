@@ -1305,9 +1305,9 @@ class KeyboardConnectionManager {
     }
 
     showTargetCountSection() {
-        const container = document.getElementById('setup-container') || document.querySelector('.setup-panel');
+        const container = document.querySelector('.setup-panel');
         if (!container) {
-            console.error('Setup container not found');
+            console.error('Setup container not found - .setup-panel');
             return;
         }
 
@@ -1448,8 +1448,11 @@ class KeyboardConnectionManager {
     }
 
     showGameStartSection() {
-        const container = document.getElementById('setup-container') || document.querySelector('.setup-panel');
-        if (!container) return;
+        const container = document.querySelector('.setup-panel');
+        if (!container) {
+            console.error('Setup container not found for game start section');
+            return;
+        }
 
         // 既存のゲーム開始セクションを削除
         const existingSection = document.getElementById('game-start-section');
