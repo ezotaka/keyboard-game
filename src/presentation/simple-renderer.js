@@ -582,7 +582,7 @@ class SimpleGameUI {
 
             this.renderGameScreen();
 
-            console.log(`正解！次の単語: ${this.getTeamCurrentWord(team)}`);
+            // 正解時の処理（必要ならUIに反映）
         } else {
             console.log('不正解');
         }
