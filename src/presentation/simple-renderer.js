@@ -26,7 +26,7 @@ class SimpleGameUI {
         
         this.initializeUI();
         this.setupEventListeners();
-        this.initializeDevPresets(); // 開発用プリセット機能を初期化
+        this.initializeDevPresets();
         
         console.log('SimpleGameUI初期化完了:', this);
     }
