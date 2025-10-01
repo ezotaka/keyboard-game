@@ -851,25 +851,6 @@ class GameUI {
         return shuffled;
     }
 
-    private getRandomWord(): string {
-        // 後方互換性のため残す（DEV-24以降は使用されない）
-        const wordCategories: Record<string, string[]> = {
-            animals: ['cat', 'dog', 'fish', 'bird', 'bear', 'lion', 'fox', 'pig'],
-            foods: ['apple', 'banana', 'cake', 'milk', 'bread', 'rice', 'egg', 'meat'],
-            colors: ['red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'orange'],
-            nature: ['sun', 'moon', 'star', 'tree', 'flower', 'water', 'wind', 'rain'],
-            family: ['mom', 'dad', 'baby', 'family', 'home', 'love'],
-            school: ['book', 'pen', 'chair', 'desk', 'bag', 'toy', 'game'],
-            mixed: ['cat', 'dog', 'fish', 'bird', 'apple', 'cake', 'red', 'blue', 'sun', 'moon',
-                   'book', 'toy', 'home', 'love', 'tree', 'water', 'happy', 'big', 'small', 'good']
-        };
-
-        const category = this.currentConfig?.wordCategory || 'mixed';
-        const words = wordCategories[category] || wordCategories.mixed;
-        return words[Math.floor(Math.random() * words.length)];
-    }
-
-
     private startGameTimer(): void {
         this.gameTimer = window.setInterval(() => {
             this.gameState.timeRemaining--;
