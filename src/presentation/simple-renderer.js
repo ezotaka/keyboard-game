@@ -5,19 +5,20 @@ console.log('=== SIMPLE RENDERER 読み込み開始 ===');
 class SimpleGameUI {
     constructor() {
         console.log('SimpleGameUI初期化開始');
-        
+
         this.keyboards = [
             { id: 'keyboard-1', name: 'Apple Magic Keyboard', connected: true },
             { id: 'keyboard-2', name: '外付けキーボード', connected: true }
         ];
-        
+
         this.gameState = {
             currentScreen: 'setup',
             teams: [
-                { id: 1, name: 'チーム 1', score: 0, currentInput: '', progress: 0 },
-                { id: 2, name: 'チーム 2', score: 0, currentInput: '', progress: 0 }
+                { id: 1, name: 'チーム 1', score: 0, currentInput: '', progress: 0, wordIndex: 0 },
+                { id: 2, name: 'チーム 2', score: 0, currentInput: '', progress: 0, wordIndex: 0 }
             ],
-            currentWord: 'cat',
+            // 全チーム共通のお題リスト（DEV-24: 各チームでお題リストを共有）
+            wordList: [],
             timeRemaining: 60,
             gameRunning: false
         };
@@ -433,60 +434,81 @@ class SimpleGameUI {
     
     async startGame() {
         console.log('ゲーム開始処理開始');
-        
+
         try {
             // カウントダウン表示
             await this.showCountdown();
-            
+
             // ゲーム状態を更新
             this.gameState.gameRunning = true;
-            this.gameState.currentWord = this.getRandomWord();
+            // DEV-24: 全チーム共通のお題リストを生成
+            this.gameState.wordList = this.generateWordList();
+            // 各チームのwordIndexを0にリセット
+            this.gameState.teams.forEach(team => team.wordIndex = 0);
             this.gameState.timeRemaining = 60;
-            
+
             // 画面切り替え
             this.showScreen('game');
             this.updateGameStatus('ゲーム中');
             this.renderGameScreen();
             this.startGameTimer();
-            
+
             console.log('ゲーム開始完了');
         } catch (error) {
             console.error('ゲーム開始エラー:', error);
         }
     }
+
+    generateWordList() {
+        // DEV-24: 全チーム共通のお題リストを生成（シャッフル）
+        const shuffled = [...this.words].sort(() => Math.random() - 0.5);
+        return shuffled;
+    }
+
+    getTeamCurrentWord(team) {
+        // DEV-24: チームの現在のお題を取得
+        if (team.wordIndex < this.gameState.wordList.length) {
+            return this.gameState.wordList[team.wordIndex];
+        }
+        // リストの最後に達したら最初に戻る
+        return this.gameState.wordList[0] || 'cat';
+    }
     
     renderGameScreen() {
-        // 現在の単語を表示
-        const wordElement = document.getElementById('target-word');
-        if (wordElement) {
-            wordElement.textContent = this.gameState.currentWord;
-        }
-        
         // チーム表示
         this.renderTeams();
         this.updateTimer();
     }
-    
+
     renderTeams() {
         const container = document.getElementById('teams-container');
         if (!container) return;
-        
-        container.innerHTML = this.gameState.teams.map(team => `
-            <div class="team-panel team-${team.id}">
-                <div class="team-header">
-                    <div class="team-name">${team.name}</div>
-                    <div class="team-score">${team.score}点</div>
-                </div>
-                <div class="team-progress">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${team.progress}%"></div>
+
+        console.log('=== renderTeams called ===');
+        console.log('wordList:', this.gameState.wordList);
+        // console.log('teams:', this.gameState.teams.map(t => ({id: t.id, wordIndex: t.wordIndex})));
+
+        container.innerHTML = this.gameState.teams.map(team => {
+            // DEV-24: 各チームの現在のお題を取得
+            const teamWord = this.getTeamCurrentWord(team);
+            return `
+                <div class="team-panel team-${team.id}">
+                    <div class="team-header">
+                        <div class="team-name">${team.name}</div>
+                        <div class="team-score">${team.score}点</div>
+                    </div>
+                    <div class="team-word">お題: ${teamWord}</div>
+                    <div class="team-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${team.progress}%"></div>
+                        </div>
+                    </div>
+                    <div class="current-input" id="team-${team.id}-input">
+                        ${team.currentInput}
                     </div>
                 </div>
-                <div class="current-input" id="team-${team.id}-input">
-                    ${team.currentInput}
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
     
     handleKeyInput(key) {
@@ -508,31 +530,35 @@ class SimpleGameUI {
         const inputElement = document.getElementById(`team-${team.id}-input`);
         if (inputElement) {
             inputElement.textContent = team.currentInput;
-            
+
+            // DEV-24: 各チームは自分のお題と比較
+            const currentWord = this.getTeamCurrentWord(team);
             // 正誤判定スタイル
-            if (this.gameState.currentWord.startsWith(team.currentInput)) {
+            if (currentWord.startsWith(team.currentInput)) {
                 inputElement.style.color = 'green';
             } else {
                 inputElement.style.color = 'red';
             }
         }
     }
-    
+
     updateTeamProgress(team) {
-        const wordLength = this.gameState.currentWord.length;
-        const correctLength = this.getCorrectInputLength(team.currentInput);
+        // DEV-24: 各チームは自分のお題の長さを使用
+        const currentWord = this.getTeamCurrentWord(team);
+        const wordLength = currentWord.length;
+        const correctLength = this.getCorrectInputLength(team.currentInput, currentWord);
         team.progress = wordLength > 0 ? (correctLength / wordLength) * 100 : 0;
-        
+
         const progressFill = document.querySelector(`.team-${team.id} .progress-fill`);
         if (progressFill) {
             progressFill.style.width = `${team.progress}%`;
         }
     }
-    
-    getCorrectInputLength(input) {
+
+    getCorrectInputLength(input, targetWord) {
         let correctLength = 0;
-        for (let i = 0; i < Math.min(input.length, this.gameState.currentWord.length); i++) {
-            if (input[i] === this.gameState.currentWord[i]) {
+        for (let i = 0; i < Math.min(input.length, targetWord.length); i++) {
+            if (input[i] === targetWord[i]) {
                 correctLength++;
             } else {
                 break;
@@ -540,17 +566,22 @@ class SimpleGameUI {
         }
         return correctLength;
     }
-    
+
     checkWord(team) {
-        if (team.currentInput === this.gameState.currentWord) {
+        // DEV-24: 各チームは自分のwordIndexに対応するお題をチェック
+        const currentWord = this.getTeamCurrentWord(team);
+
+        if (team.currentInput === currentWord) {
             team.score += 10;
             team.currentInput = '';
             team.progress = 0;
-            
-            this.gameState.currentWord = this.getRandomWord();
+
+            // DEV-24: このチームのwordIndexだけを進める
+            team.wordIndex++;
+
             this.renderGameScreen();
-            
-            console.log(`正解！新しい単語: ${this.gameState.currentWord}`);
+
+            // 正解時の処理（必要ならUIに反映）
         } else {
             console.log('不正解');
         }
@@ -610,14 +641,14 @@ class SimpleGameUI {
         this.gameState = {
             currentScreen: 'setup',
             teams: [
-                { id: 1, name: 'チーム 1', score: 0, currentInput: '', progress: 0 },
-                { id: 2, name: 'チーム 2', score: 0, currentInput: '', progress: 0 }
+                { id: 1, name: 'チーム 1', score: 0, currentInput: '', progress: 0, wordIndex: 0 },
+                { id: 2, name: 'チーム 2', score: 0, currentInput: '', progress: 0, wordIndex: 0 }
             ],
-            currentWord: 'cat',
+            wordList: [],
             timeRemaining: 60,
             gameRunning: false
         };
-        
+
         this.showScreen('setup');
         this.updateGameStatus('準備中');
     }
