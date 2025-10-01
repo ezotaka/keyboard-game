@@ -21,7 +21,7 @@ class KeyboardConnectionManager {
         this.gameState = 'setup'; // 'setup', 'playing', 'finished'
         this.gameStartTime = null;
         this.teamCompletionTimes = new Map();
-        this.usedWords = new Set();
+        this.sharedWordList = [];
 
         // 同時進行ゲーム用の状態管理
         this.teamGameStates = new Map(); // 各チームのゲーム状態を管理
@@ -1775,7 +1775,7 @@ class KeyboardConnectionManager {
         this.currentPhase = '2.1';
         this.gameStartTime = Date.now();
         this.teamCompletionTimes.clear();
-        this.usedWords.clear();
+        this.initializeSharedWordList();
         this.teamGameStates.clear();
 
         // 各チームの進捗を初期化 & プレイヤーにキーボードID割り当て & 各チーム独立のゲーム状態設定
@@ -1810,7 +1810,7 @@ class KeyboardConnectionManager {
                 currentPlayerIndex: 0,
                 currentWord: null,
                 currentInput: '',
-                usedWords: new Set()
+                wordIndex: 0
             };
 
             this.teamGameStates.set(team.id, teamState);
@@ -1897,24 +1897,17 @@ class KeyboardConnectionManager {
 
         if (!team || !teamState) return;
 
-        const difficulty = team.difficulty || 'easy';
-        let word = getRandomWord(difficulty);
+        const sharedWord = this.sharedWordList[teamState.wordIndex];
 
-        // 重複回避（最大10回試行）
-        let attempts = 0;
-        while (teamState.usedWords.has(word.hiragana) && attempts < 10) {
-            word = getRandomWord(difficulty);
-            attempts++;
+        if (!sharedWord) {
+            console.warn(`[ゲーム] 共有お題リストが不足しています (team ${teamId}, index ${teamState.wordIndex})`);
+            return;
         }
 
-        teamState.currentWord = word;
+        teamState.currentWord = sharedWord;
         teamState.currentInput = '';
-        teamState.usedWords.add(word.hiragana);
 
-        // 全体のusedWordsにも追加（重複避けのため）
-        this.usedWords.add(word.hiragana);
-
-        this.addToActivityLog(`[${team.name}] 新しいお題: ${word.hiragana} (${word.romaji})`, 'game');
+        this.addToActivityLog(`[${team.name}] 新しいお題: ${sharedWord.hiragana} (${sharedWord.romaji})`, 'game');
     }
 
     // 現在のプレイヤーを取得（チーム別）
@@ -2095,6 +2088,7 @@ class KeyboardConnectionManager {
 
         // チームの完了単語数を増加
         team.completedWords++;
+        teamState.wordIndex++;
 
         this.addToActivityLog(`[ゲーム] ${team.name} が「${teamState.currentWord.hiragana}」をクリア！`, 'game');
 
@@ -2121,6 +2115,53 @@ class KeyboardConnectionManager {
 
         // UI更新
         this.updateGameDisplay();
+    }
+
+    initializeSharedWordList() {
+        if (!this.teams.length) {
+            this.sharedWordList = [];
+            return;
+        }
+
+        const difficulties = new Set(this.teams.map(team => team.difficulty || 'easy'));
+        const [primaryDifficulty] = difficulties;
+        if (difficulties.size > 1) {
+            console.warn('[ゲーム] 複数の難易度が選択されています。最初のチームの難易度を共有お題に使用します。');
+        }
+
+        const maxTargetCount = Math.max(...this.teams.map(team => team.targetCount || 0), 1);
+        this.sharedWordList = this.generateSharedWordSequence(primaryDifficulty || 'easy', maxTargetCount);
+    }
+
+    generateSharedWordSequence(difficulty, length) {
+        const wordSet = [...getWordSet(difficulty)];
+
+        if (!wordSet.length) {
+            if (difficulty !== 'easy') {
+                console.warn(`[ゲーム] 難易度"${difficulty}"のお題が見つかりません。"easy"を使用します。`);
+                return this.generateSharedWordSequence('easy', length);
+            }
+
+            console.error('[ゲーム] 有効なお題が見つかりません。空のリストを返します。');
+            return [];
+        }
+
+        const shuffled = wordSet
+            .map(word => ({ word, sortKey: Math.random() }))
+            .sort((a, b) => a.sortKey - b.sortKey)
+            .map(entry => entry.word);
+
+        const sharedList = [];
+        let pool = [...shuffled];
+
+        while (sharedList.length < length) {
+            if (!pool.length) {
+                pool = [...shuffled];
+            }
+            sharedList.push(pool.shift());
+        }
+
+        return sharedList;
     }
 
     nextPlayerInTeam(teamId) {

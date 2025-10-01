@@ -484,9 +484,14 @@ class SimpleGameUI {
         const container = document.getElementById('teams-container');
         if (!container) return;
 
+        console.log('=== renderTeams called ===');
+        console.log('wordList:', this.gameState.wordList);
+        console.log('teams:', this.gameState.teams.map(t => ({id: t.id, wordIndex: t.wordIndex})));
+
         container.innerHTML = this.gameState.teams.map(team => {
             // DEV-24: 各チームの現在のお題を取得
             const teamWord = this.getTeamCurrentWord(team);
+            console.log(`Team ${team.id}: wordIndex=${team.wordIndex}, word="${teamWord}"`);
             return `
                 <div class="team-panel team-${team.id}">
                     <div class="team-header">

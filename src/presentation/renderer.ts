@@ -650,6 +650,15 @@ class GameUI {
             // 各チームのwordIndexを0にリセット
             this.gameState.teams.forEach(team => team.wordIndex = 0);
 
+            // デバッグログ
+            console.log('=== DEV-24 Debug ===');
+            console.log('wordList:', this.gameState.wordList);
+            console.log('Team 1 wordIndex:', this.gameState.teams[0]?.wordIndex);
+            console.log('Team 2 wordIndex:', this.gameState.teams[1]?.wordIndex);
+            console.log('Team 1 current word:', this.getTeamCurrentWord(this.gameState.teams[0]));
+            console.log('Team 2 current word:', this.getTeamCurrentWord(this.gameState.teams[1]));
+            console.log('===================');
+
             this.showScreen('game');
             this.updateGameStatus('ゲーム中');
             this.renderGameScreen();
@@ -672,6 +681,7 @@ class GameUI {
         container.innerHTML = this.gameState.teams.map(team => {
             // DEV-24: 各チームの現在のお題を取得
             const teamWord = this.getTeamCurrentWord(team);
+            console.log(`[renderTeams] Team ${team.id}: wordIndex=${team.wordIndex}, word="${teamWord}"`);
             return `
                 <div class="team-panel team-${team.id}">
                     <div class="team-header">
