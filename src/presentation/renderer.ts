@@ -651,13 +651,6 @@ class GameUI {
             this.gameState.teams.forEach(team => team.wordIndex = 0);
 
             // デバッグログ
-            console.log('=== DEV-24 Debug ===');
-            console.log('wordList:', this.gameState.wordList);
-            console.log('Team 1 wordIndex:', this.gameState.teams[0]?.wordIndex);
-            console.log('Team 2 wordIndex:', this.gameState.teams[1]?.wordIndex);
-            console.log('Team 1 current word:', this.getTeamCurrentWord(this.gameState.teams[0]));
-            console.log('Team 2 current word:', this.getTeamCurrentWord(this.gameState.teams[1]));
-            console.log('===================');
 
             this.showScreen('game');
             this.updateGameStatus('ゲーム中');
