@@ -4,7 +4,24 @@
  */
 
 class MockElectronAPI {
-    constructor() {
+    // 定数定義
+    static AUTO_INPUT_DELAY = {
+        START: 3000,                  // 自動入力開始までの遅延（ミリ秒）
+        BETWEEN_WORDS: 2000,          // 単語間の遅延（ミリ秒）
+        BETWEEN_CHARS_MIN: 300,       // 文字間の最小遅延（ミリ秒）
+        BETWEEN_CHARS_RANDOM: 400,    // 文字間のランダム遅延範囲（ミリ秒）
+        SPACE_AFTER_WORD: 200,        // 単語後のスペース遅延（ミリ秒）
+        RETRY_INTERVAL: 1000          // リスナー待機時のリトライ間隔（ミリ秒）
+    };
+
+    constructor(options = {}) {
+        // 設定オプション
+        this.config = {
+            deterministicKeyboardSelection: options.deterministicKeyboardSelection ?? false,
+            defaultKeyboardId: options.defaultKeyboardId ?? 'kb-1',
+            ...options
+        };
+
         this.keyboards = [
             {
                 id: 'kb-1',
@@ -45,10 +62,21 @@ class MockElectronAPI {
         return this.keyboards;
     }
 
-    async rescanKeyboards() {
+    /**
+     * Rescan keyboards. For testing, you can force addition of a keyboard by passing shouldAddKeyboard.
+     * @param {boolean} [shouldAddKeyboard] - If true, always add a keyboard. If false, never add. If undefined, use random.
+     */
+    async rescanKeyboards(shouldAddKeyboard) {
         console.log('[Mock] rescanKeyboards called');
-        // シミュレート: 時々キーボード数が変わる
-        if (Math.random() > 0.7) {
+        // シミュレート: 時々キーボード数が変わる（テスト時は制御可能）
+        let addKeyboard;
+        if (typeof shouldAddKeyboard === 'boolean') {
+            addKeyboard = shouldAddKeyboard;
+        } else {
+            addKeyboard = Math.random() > 0.7;
+        }
+
+        if (addKeyboard) {
             this.keyboards.push({
                 id: `kb-${this.keyboards.length + 1}`,
                 name: `Mock Keyboard ${this.keyboards.length + 1}`,
@@ -106,10 +134,18 @@ class MockElectronAPI {
         document.addEventListener('keydown', (event) => {
             if (this.eventCallbacks.realKeyInput.length === 0) return;
 
+            // キーボード選択: 決定的モードまたはランダム
+            let keyboardId;
+            if (this.config.deterministicKeyboardSelection) {
+                keyboardId = this.config.defaultKeyboardId;
+            } else {
+                keyboardId = Math.random() > 0.5 ? 'kb-1' : 'kb-2';
+            }
+
             const mockKeyEvent = {
                 key: event.key,
                 code: event.code,
-                keyboardId: Math.random() > 0.5 ? 'kb-1' : 'kb-2', // ランダムにキーボードを選択
+                keyboardId: keyboardId,
                 timestamp: Date.now(),
                 source: 'mock-browser',
                 rawData: {
@@ -147,7 +183,7 @@ class MockElectronAPI {
 
         const autoType = () => {
             if (this.eventCallbacks.realKeyInput.length === 0) {
-                setTimeout(autoType, 1000);
+                setTimeout(autoType, MockElectronAPI.AUTO_INPUT_DELAY.RETRY_INTERVAL);
                 return;
             }
 
@@ -203,15 +239,18 @@ class MockElectronAPI {
                     this.eventCallbacks.realKeyInput.forEach(callback => {
                         callback(spaceEvent);
                     });
-                }, 200);
+                }, MockElectronAPI.AUTO_INPUT_DELAY.SPACE_AFTER_WORD);
 
-                setTimeout(autoType, 2000); // 次の単語まで2秒待機
+                setTimeout(autoType, MockElectronAPI.AUTO_INPUT_DELAY.BETWEEN_WORDS);
             } else {
-                setTimeout(autoType, 300 + Math.random() * 400); // 文字間隔をランダム化
+                setTimeout(autoType,
+                    MockElectronAPI.AUTO_INPUT_DELAY.BETWEEN_CHARS_MIN +
+                    Math.random() * MockElectronAPI.AUTO_INPUT_DELAY.BETWEEN_CHARS_RANDOM
+                );
             }
         };
 
-        setTimeout(autoType, 3000); // 3秒後に自動入力開始
+        setTimeout(autoType, MockElectronAPI.AUTO_INPUT_DELAY.START);
     }
 }
 
