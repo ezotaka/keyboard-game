@@ -486,7 +486,7 @@ class SimpleGameUI {
 
         console.log('=== renderTeams called ===');
         console.log('wordList:', this.gameState.wordList);
-        console.log('teams:', this.gameState.teams.map(t => ({id: t.id, wordIndex: t.wordIndex})));
+        // console.log('teams:', this.gameState.teams.map(t => ({id: t.id, wordIndex: t.wordIndex})));
 
         container.innerHTML = this.gameState.teams.map(team => {
             // DEV-24: 各チームの現在のお題を取得
