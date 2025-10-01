@@ -5,18 +5,19 @@ console.log('=== SIMPLE RENDERER 読み込み開始 ===');
 class SimpleGameUI {
     constructor() {
         console.log('SimpleGameUI初期化開始');
-        
+
         this.keyboards = [
             { id: 'keyboard-1', name: 'Apple Magic Keyboard', connected: true },
             { id: 'keyboard-2', name: '外付けキーボード', connected: true }
         ];
-        
+
         this.gameState = {
             currentScreen: 'setup',
             teams: [
                 { id: 1, name: 'チーム 1', score: 0, currentInput: '', progress: 0 },
                 { id: 2, name: 'チーム 2', score: 0, currentInput: '', progress: 0 }
             ],
+            // 全チーム共通のお題単語（DEV-24: 各チームでお題を共有）
             currentWord: 'cat',
             timeRemaining: 60,
             gameRunning: false
@@ -546,10 +547,11 @@ class SimpleGameUI {
             team.score += 10;
             team.currentInput = '';
             team.progress = 0;
-            
+
+            // 全チーム共通の新しいお題を設定（DEV-24: 各チームでお題を共有）
             this.gameState.currentWord = this.getRandomWord();
             this.renderGameScreen();
-            
+
             console.log(`正解！新しい単語: ${this.gameState.currentWord}`);
         } else {
             console.log('不正解');

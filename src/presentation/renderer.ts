@@ -9,6 +9,7 @@ import '../types/window.d.ts';
 interface GameState {
     currentScreen: 'setup' | 'game' | 'result';
     teams: Team[];
+    // 全チーム共通のお題単語（DEV-24: 各チームでお題を共有）
     currentWord: string;
     timeRemaining: number;
     gameRunning: boolean;
@@ -766,19 +767,20 @@ class GameUI {
 
         const normalizedInput = normalizeText(team.currentInput);
         const normalizedTarget = normalizeText(this.gameState.currentWord);
-        
+
         if (normalizedInput === normalizedTarget) {
             team.score += 10;
             team.currentInput = '';
             team.progress = 0;
-            
+
             // 成功音を再生
             this.soundManager.playSound(SoundType.SUCCESS);
-            
+
+            // 全チーム共通の新しいお題を設定（DEV-24: 各チームでお題を共有）
             this.gameState.currentWord = this.getRandomWord();
             this.updateCurrentWord();
             this.renderTeams();
-            
+
             // 成功エフェクト
             this.showSuccessEffect(team);
         } else {
