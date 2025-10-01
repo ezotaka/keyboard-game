@@ -181,6 +181,11 @@ public:
         CFIndex integerValue = IOHIDValueGetIntegerValue(value);
         uint64_t timestamp = IOHIDValueGetTimeStamp(value);
 
+        // 無効なusage値をフィルタリング
+        if (usage == 0xFFFFFFFF || usage == 0) {
+            return; // 無効なイベントをスキップ
+        }
+
         // キーボードイベントのみ処理 (usage page 7 = キーボード/キーパッド)
         if (usagePage == kHIDPage_KeyboardOrKeypad && integerValue > 0) { // キー押下時のみ
             KeyEvent keyEvent;
@@ -234,7 +239,9 @@ public:
         if (it != keyMap.end()) {
             return it->second;
         }
-        return "Unknown(0x" + std::to_string(usage) + ")";
+        char buffer[32];
+        snprintf(buffer, sizeof(buffer), "Unknown(0x%X)", usage);
+        return std::string(buffer);
     }
 
 private:
