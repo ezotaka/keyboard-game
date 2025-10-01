@@ -9,8 +9,8 @@ import '../types/window.d.ts';
 interface GameState {
     currentScreen: 'setup' | 'game' | 'result';
     teams: Team[];
-    // 全チーム共通のお題単語（DEV-24: 各チームでお題を共有）
-    currentWord: string;
+    // 全チーム共通のお題リスト（DEV-24: 各チームでお題リストを共有）
+    wordList: string[];
     timeRemaining: number;
     gameRunning: boolean;
 }
@@ -23,6 +23,8 @@ interface Team {
     progress: number;
     keyboardId?: string;
     color: string;
+    // 各チームのお題リスト進捗インデックス（DEV-24）
+    wordIndex: number;
 }
 
 interface Keyboard {
@@ -50,7 +52,7 @@ class GameUI {
         this.gameState = {
             currentScreen: 'setup',
             teams: [],
-            currentWord: '',
+            wordList: [],
             timeRemaining: 60,
             gameRunning: false
         };
@@ -602,7 +604,8 @@ class GameUI {
             currentInput: '',
             progress: 0,
             keyboardId: this.keyboards.find(kb => kb.teamId === i + 1)?.id,
-            color: this.TEAM_COLORS[i]
+            color: this.TEAM_COLORS[i],
+            wordIndex: 0  // DEV-24: 各チームのお題リスト進捗を初期化
         }));
 
         this.updateKeyboardList();
@@ -640,8 +643,13 @@ class GameUI {
             this.gameState.currentScreen = 'game';
             this.gameState.gameRunning = true;
             this.gameState.timeRemaining = this.currentConfig?.gameDuration || 60;
-            this.gameState.currentWord = this.getRandomWord();
-            
+
+            // DEV-24: 全チーム共通のお題リストを生成
+            this.gameState.wordList = this.generateWordList();
+
+            // 各チームのwordIndexを0にリセット
+            this.gameState.teams.forEach(team => team.wordIndex = 0);
+
             this.showScreen('game');
             this.updateGameStatus('ゲーム中');
             this.renderGameScreen();
@@ -653,7 +661,6 @@ class GameUI {
     }
 
     private renderGameScreen(): void {
-        this.updateCurrentWord();
         this.renderTeams();
         this.updateTimer();
     }
@@ -662,22 +669,27 @@ class GameUI {
         const container = document.getElementById('teams-container');
         if (!container) return;
 
-        container.innerHTML = this.gameState.teams.map(team => `
-            <div class="team-panel team-${team.id}">
-                <div class="team-header">
-                    <div class="team-name">${team.name}</div>
-                    <div class="team-score">${team.score}点</div>
-                </div>
-                <div class="team-progress">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${team.progress}%"></div>
+        container.innerHTML = this.gameState.teams.map(team => {
+            // DEV-24: 各チームの現在のお題を取得
+            const teamWord = this.getTeamCurrentWord(team);
+            return `
+                <div class="team-panel team-${team.id}">
+                    <div class="team-header">
+                        <div class="team-name">${team.name}</div>
+                        <div class="team-score">${team.score}点</div>
+                    </div>
+                    <div class="team-word">お題: ${teamWord}</div>
+                    <div class="team-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${team.progress}%"></div>
+                        </div>
+                    </div>
+                    <div class="current-input" id="team-${team.id}-input">
+                        ${team.currentInput}
                     </div>
                 </div>
-                <div class="current-input" id="team-${team.id}-input">
-                    ${team.currentInput}
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     private handleKeyboardInput(data: any): void {
@@ -704,15 +716,17 @@ class GameUI {
         const inputElement = document.getElementById(`team-${team.id}-input`);
         if (inputElement) {
             inputElement.textContent = team.currentInput;
-            
+
             // 簡単な正規化（英単語用）
             const normalizeText = (text: string): string => {
                 return text.toLowerCase().trim();
             };
 
             const normalizedInput = normalizeText(team.currentInput);
-            const normalizedTarget = normalizeText(this.gameState.currentWord);
-            
+            // DEV-24: 各チームは自分のお題と比較
+            const currentWord = this.getTeamCurrentWord(team);
+            const normalizedTarget = normalizeText(currentWord);
+
             // 入力状態に応じてスタイル変更
             if (normalizedTarget.startsWith(normalizedInput)) {
                 inputElement.classList.add('correct');
@@ -725,12 +739,13 @@ class GameUI {
     }
 
     private updateTeamProgress(team: Team): void {
-        const wordLength = this.gameState.currentWord.length;
-        const inputLength = team.currentInput.length;
-        const correctLength = this.getCorrectInputLength(team.currentInput);
-        
+        // DEV-24: 各チームは自分のお題の長さを使用
+        const currentWord = this.getTeamCurrentWord(team);
+        const wordLength = currentWord.length;
+        const correctLength = this.getCorrectInputLength(team.currentInput, currentWord);
+
         team.progress = wordLength > 0 ? (correctLength / wordLength) * 100 : 0;
-        
+
         const progressFill = document.querySelector(
             `.team-${team.id} .progress-fill`
         ) as HTMLElement;
@@ -739,19 +754,19 @@ class GameUI {
         }
     }
 
-    private getCorrectInputLength(input: string): number {
+    private getCorrectInputLength(input: string, targetWord: string): number {
         // 簡単な正規化（英単語用）
         const normalizeText = (text: string): string => {
             return text.toLowerCase().trim();
         };
 
         const normalizedInput = normalizeText(input);
-        const normalizedTarget = normalizeText(this.gameState.currentWord);
-        
+        const normalizedTarget = normalizeText(targetWord);
+
         let correctLength = 0;
         for (let i = 0; i < Math.min(normalizedInput.length, normalizedTarget.length); i++) {
             if (normalizedInput[i] === normalizedTarget[i]) {
-                correctLength++; 
+                correctLength++;
             } else {
                 break;
             }
@@ -766,7 +781,9 @@ class GameUI {
         };
 
         const normalizedInput = normalizeText(team.currentInput);
-        const normalizedTarget = normalizeText(this.gameState.currentWord);
+        // DEV-24: 各チームは自分のwordIndexに対応するお題をチェック
+        const currentWord = this.getTeamCurrentWord(team);
+        const normalizedTarget = normalizeText(currentWord);
 
         if (normalizedInput === normalizedTarget) {
             team.score += 10;
@@ -776,9 +793,10 @@ class GameUI {
             // 成功音を再生
             this.soundManager.playSound(SoundType.SUCCESS);
 
-            // 全チーム共通の新しいお題を設定（DEV-24: 各チームでお題を共有）
-            this.gameState.currentWord = this.getRandomWord();
-            this.updateCurrentWord();
+            // DEV-24: このチームのwordIndexだけを進める
+            team.wordIndex++;
+
+            // チーム表示を更新
             this.renderTeams();
 
             // 成功エフェクト
@@ -787,6 +805,15 @@ class GameUI {
             // エラー音を再生
             this.soundManager.playSound(SoundType.ERROR);
         }
+    }
+
+    private getTeamCurrentWord(team: Team): string {
+        // DEV-24: チームの現在のお題を取得
+        if (team.wordIndex < this.gameState.wordList.length) {
+            return this.gameState.wordList[team.wordIndex];
+        }
+        // リストの最後に達したら最初に戻る
+        return this.gameState.wordList[0] || 'cat';
     }
 
     private showSuccessEffect(team: Team): void {
@@ -799,8 +826,30 @@ class GameUI {
         }
     }
 
-    private getRandomWord(): string {
+    private generateWordList(): string[] {
+        // DEV-24: 全チーム共通のお題リストを生成
         // 英単語カテゴリを定義（保育園児向け簡単な単語）
+        const wordCategories: Record<string, string[]> = {
+            animals: ['cat', 'dog', 'fish', 'bird', 'bear', 'lion', 'fox', 'pig'],
+            foods: ['apple', 'banana', 'cake', 'milk', 'bread', 'rice', 'egg', 'meat'],
+            colors: ['red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'orange'],
+            nature: ['sun', 'moon', 'star', 'tree', 'flower', 'water', 'wind', 'rain'],
+            family: ['mom', 'dad', 'baby', 'family', 'home', 'love'],
+            school: ['book', 'pen', 'chair', 'desk', 'bag', 'toy', 'game'],
+            mixed: ['cat', 'dog', 'fish', 'bird', 'apple', 'cake', 'red', 'blue', 'sun', 'moon',
+                   'book', 'toy', 'home', 'love', 'tree', 'water', 'happy', 'big', 'small', 'good']
+        };
+
+        const category = this.currentConfig?.wordCategory || 'mixed';
+        const words = wordCategories[category] || wordCategories.mixed;
+
+        // シャッフルしたリストを返す
+        const shuffled = [...words].sort(() => Math.random() - 0.5);
+        return shuffled;
+    }
+
+    private getRandomWord(): string {
+        // 後方互換性のため残す（DEV-24以降は使用されない）
         const wordCategories: Record<string, string[]> = {
             animals: ['cat', 'dog', 'fish', 'bird', 'bear', 'lion', 'fox', 'pig'],
             foods: ['apple', 'banana', 'cake', 'milk', 'bread', 'rice', 'egg', 'meat'],
@@ -817,12 +866,6 @@ class GameUI {
         return words[Math.floor(Math.random() * words.length)];
     }
 
-    private updateCurrentWord(): void {
-        const wordElement = document.getElementById('target-word');
-        if (wordElement) {
-            wordElement.textContent = this.gameState.currentWord;
-        }
-    }
 
     private startGameTimer(): void {
         this.gameTimer = window.setInterval(() => {
@@ -898,7 +941,7 @@ class GameUI {
         this.gameState = {
             currentScreen: 'setup',
             teams: [],
-            currentWord: '',
+            wordList: [],
             timeRemaining: this.currentConfig?.gameDuration || 60,
             gameRunning: false
         };
