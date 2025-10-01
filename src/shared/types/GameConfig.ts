@@ -46,6 +46,39 @@ export interface TeamSettings {
   assignedKeyboardId?: string;
 }
 
+/** プレイヤー情報 */
+export interface Player {
+  /** プレイヤーID */
+  id: string;
+  
+  /** プレイヤー名 */
+  name: string;
+  
+  /** 作成日時 */
+  createdAt: string;
+}
+
+/** チーム内のメンバー情報 */
+export interface TeamMember {
+  /** プレイヤー情報 */
+  player: Player;
+  
+  /** チーム内でのターン順（0から開始） */
+  turnOrder: number;
+  
+  /** 参加日時 */
+  joinedAt: string;
+}
+
+/** メンバー割り当て済みのチーム設定 */
+export interface TeamWithMembers extends TeamSettings {
+  /** チームメンバー（ターン順にソート済み） */
+  members: TeamMember[];
+  
+  /** 現在のターンのプレイヤーインデックス */
+  currentTurnIndex: number;
+}
+
 export interface KeyboardAssignment {
   /** キーボードID */
   keyboardId: string;

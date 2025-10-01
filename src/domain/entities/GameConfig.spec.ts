@@ -1,5 +1,5 @@
-import { GameConfig } from './GameConfig.js';
-import { DifficultyLevel, WordCategory } from '../../shared/types/GameConfig.js';
+import { GameConfig } from './GameConfig';
+import { DifficultyLevel, WordCategory } from '../../shared/types/GameConfig';
 
 describe('GameConfig', () => {
   describe('constructor', () => {

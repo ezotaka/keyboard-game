@@ -1,0 +1,19 @@
+{
+  "name": "test-electron-keyboard",
+  "version": "1.0.0",
+  "description": "Minimal Electron app to test multiple keyboard input handling",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "devDependencies": {
+    "electron": "^26.2.1"
+  },
+  "dependencies": {
+    "node-gyp": "^11.4.2",
+    "node-hid": "^2.1.2"
+  },
+  "author": "Takatomo Ezo",
+  "license": "MIT"
+}

@@ -1,3 +1,68 @@
+/* 開発用プリセットスタイル */
+.dev-preset-section {
+    display: flex !important; /* 強制表示でテスト */
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    border: 2px dashed #4ECDC4;
+}
+
+.dev-preset-section label {
+    font-size: 0.9rem;
+    color: #4ECDC4;
+    font-weight: bold;
+}
+
+.dev-preset-section select {
+    min-width: 200px;
+}
+
+.btn-accent {
+    background: linear-gradient(135deg, #4ECDC4, #44A08D);
+    color: white;
+    border: none;
+}
+
+.btn-accent:hover {
+    background: linear-gradient(135deg, #44A08D, #4ECDC4);
+    transform: translateY(-2px);
+}
+
+.btn-small {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+}
+
+.player-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin: 5px 0;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 5px;
+    border-left: 4px solid #4ECDC4;
+}
+
+.player-name {
+    font-weight: 500;
+    color: #2D3748;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #FF6B6B, #EE5A52);
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #EE5A52, #FF6B6B);
+    transform: translateY(-1px);
+}
+
 /* 基本スタイル */
 * {
     margin: 0;
@@ -863,6 +928,391 @@ body {
     transform: translateY(-2px);
 }
 
+/* Phase 1.4: プレイヤー管理・メンバー割り当て・ターン順設定 */
+
+/* プレイヤー管理 */
+.player-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.player-input-area {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.player-input-area input {
+    flex: 1;
+}
+
+.players-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.player-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    min-width: 120px;
+    transition: all 0.3s ease;
+}
+
+.player-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.player-name {
+    font-weight: 500;
+    color: #2d3748;
+}
+
+.remove-player-btn {
+    background: #e53e3e;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: all 0.3s ease;
+}
+
+.remove-player-btn:hover {
+    background: #c53030;
+    transform: scale(1.1);
+}
+
+/* チームメンバー割り当て */
+.team-assignment-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.assignment-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.assignment-strategy {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.team-members-display {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.team-members-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    padding: 15px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.team-members-card:hover {
+    border-color: #4299e1;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.team-members-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.team-members-header h4 {
+    margin: 0;
+    color: #2d3748;
+}
+
+.member-count {
+    background: #4299e1;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.team-members-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.team-member-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #f7fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.member-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.member-order {
+    background: #4299e1;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.member-name {
+    font-weight: 500;
+    color: #2d3748;
+}
+
+.move-member-controls {
+    display: flex;
+    gap: 4px;
+}
+
+.move-member-btn {
+    background: #e2e8f0;
+    border: none;
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.move-member-btn:hover {
+    background: #cbd5e0;
+    transform: scale(1.1);
+}
+
+/* ターン順設定 */
+.turn-order-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.turn-order-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.turn-order-strategy {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.turn-order-display {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.turn-order-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    padding: 15px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.turn-order-card:hover {
+    border-color: #38a169;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.turn-order-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+.turn-order-header h4 {
+    margin: 0;
+    color: #2d3748;
+}
+
+.current-player-indicator {
+    background: #38a169;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.turn-order-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.turn-order-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: #f7fafc;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.turn-order-item.current-turn {
+    background: #c6f6d5;
+    border-color: #38a169;
+    box-shadow: 0 0 0 2px rgba(56, 161, 105, 0.2);
+}
+
+.turn-order-item:hover:not(.current-turn) {
+    background: #edf2f7;
+}
+
+.turn-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.turn-number {
+    background: #4a5568;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.turn-order-item.current-turn .turn-number {
+    background: #38a169;
+    animation: currentTurnPulse 2s ease infinite;
+}
+
+@keyframes currentTurnPulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(56, 161, 105, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(56, 161, 105, 0);
+    }
+}
+
+.turn-player-name {
+    font-weight: 600;
+    color: #2d3748;
+}
+
+.turn-controls {
+    display: flex;
+    gap: 4px;
+}
+
+.set-current-btn {
+    background: #38a169;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.set-current-btn:hover {
+    background: #2f855a;
+    transform: scale(1.05);
+}
+
+.set-current-btn:disabled {
+    background: #e2e8f0;
+    color: #a0aec0;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 空のメッセージ */
+.empty-message {
+    text-align: center;
+    padding: 30px;
+    color: #718096;
+    font-style: italic;
+}
+
+.empty-message::before {
+    content: "👥";
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+/* アニメーション効果 */
+.player-item,
+.team-members-card,
+.turn-order-card {
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* レスポンシブ調整 */
 @media (max-width: 768px) {
     .setup-header {
@@ -870,17 +1320,38 @@ body {
         gap: 15px;
         text-align: center;
     }
-    
+
     .settings-grid {
         grid-template-columns: 1fr;
     }
-    
-    .team-settings {
+
+    .team-settings,
+    .team-members-display,
+    .turn-order-display {
         grid-template-columns: 1fr;
     }
-    
+
     .sound-toggles {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .assignment-controls,
+    .turn-order-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .assignment-strategy,
+    .turn-order-strategy {
+        justify-content: space-between;
+    }
+
+    .players-container {
+        flex-direction: column;
+    }
+
+    .player-item {
+        min-width: auto;
     }
 }

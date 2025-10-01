@@ -13,6 +13,17 @@
             <div class="game-status">
                 <span id="game-state">準備中</span>
             </div>
+
+            <!-- デバッグ用：最上部にも開発プリセット表示 -->
+            <div id="top-dev-preset" style="margin: 10px 0; padding: 10px; background: rgba(255, 255, 0, 0.2); border: 2px solid #ffeb3b; border-radius: 8px; display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <span style="color: #f57f17; font-weight: bold;">⚡ 緊急デバッグ用プリセット:</span>
+                <select id="emergency-preset-select" style="padding: 5px;">
+                    <option value="">選択...</option>
+                    <option value="quick-2team">クイック2チーム</option>
+                    <option value="minimal">最小構成</option>
+                </select>
+                <button id="emergency-load-btn" style="padding: 5px 10px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer;">緊急適用</button>
+            </div>
         </header>
 
         <main class="game-container">
@@ -24,6 +35,13 @@
                         <div class="setup-controls">
                             <button id="save-config-btn" class="btn btn-secondary">設定保存</button>
                             <button id="load-config-btn" class="btn btn-secondary">設定読込</button>
+                            <div id="dev-presets" class="dev-preset-section" style="display: none;">
+                                <label for="preset-select">開発プリセット:</label>
+                                <select id="preset-select" class="setting-input">
+                                    <option value="">プリセットを選択...</option>
+                                </select>
+                                <button id="load-preset-btn" class="btn btn-accent btn-small">プリセット読込</button>
+                            </div>
                         </div>
                     </div>
                     
@@ -92,6 +110,66 @@
                         </div>
                     </div>
 
+                    <!-- プレイヤー管理 -->
+                    <div class="settings-section">
+                        <h3>プレイヤー管理</h3>
+                        <div class="player-section">
+                            <div class="player-input-area">
+                                <input type="text" id="player-name-input" class="setting-input" placeholder="プレイヤー名を入力" maxlength="20">
+                                <button id="add-player-btn" class="btn btn-secondary">プレイヤー追加</button>
+                            </div>
+                            <div class="player-list">
+                                <h4>参加プレイヤー (<span id="player-count">0</span>人)</h4>
+                                <div id="players-container" class="players-container">
+                                    <!-- 動的に生成 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- チームメンバー割り当て -->
+                    <div class="settings-section">
+                        <h3>チームメンバー割り当て</h3>
+                        <div class="team-assignment-section">
+                            <div class="assignment-controls">
+                                <div class="assignment-strategy">
+                                    <label for="assignment-strategy">割り当て方法:</label>
+                                    <select id="assignment-strategy" class="setting-input">
+                                        <option value="sequential">順番通り</option>
+                                        <option value="random">ランダム</option>
+                                        <option value="manual">手動指定</option>
+                                    </select>
+                                </div>
+                                <button id="assign-players-btn" class="btn btn-primary">メンバー割り当て</button>
+                            </div>
+                            <div id="team-members-display" class="team-members-display">
+                                <!-- 動的に生成 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ターン順設定 -->
+                    <div class="settings-section">
+                        <h3>ターン順設定</h3>
+                        <div class="turn-order-section">
+                            <div class="turn-order-controls">
+                                <div class="turn-order-strategy">
+                                    <label for="turn-order-strategy">ターン順決定方法:</label>
+                                    <select id="turn-order-strategy" class="setting-input">
+                                        <option value="sequential">追加順</option>
+                                        <option value="random">ランダム</option>
+                                        <option value="alphabetical">あいうえお順</option>
+                                        <option value="manual">手動指定</option>
+                                    </select>
+                                </div>
+                                <button id="decide-turn-order-btn" class="btn btn-primary">ターン順決定</button>
+                            </div>
+                            <div id="turn-order-display" class="turn-order-display">
+                                <!-- 動的に生成 -->
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- キーボード設定 -->
                     <div class="settings-section">
                         <h3>キーボード設定</h3>
@@ -99,6 +177,19 @@
                             <div class="keyboard-status">
                                 <span id="keyboard-count">0</span>台のキーボードが検知されています
                                 <button id="refresh-keyboards-btn" class="btn btn-small">再検索</button>
+
+                                <!-- 開発プリセットボタン（常に表示） -->
+                                <div class="dev-preset-buttons" style="margin-top: 15px; display: flex; gap: 10px; align-items: center; padding: 10px; background: rgba(78, 205, 196, 0.1); border-radius: 8px; border: 2px dashed #4ECDC4;">
+                                    <span style="color: #4ECDC4; font-weight: bold; font-size: 14px;">🚀 開発プリセット:</span>
+                                    <select id="quick-preset-select" style="padding: 5px 10px; border-radius: 4px; border: 1px solid #4ECDC4;">
+                                        <option value="">選択...</option>
+                                        <option value="quick-2team">クイック2チーム (30秒)</option>
+                                        <option value="multi-team">マルチチーム (60秒)</option>
+                                        <option value="minimal">最小構成 (15秒)</option>
+                                        <option value="full-config">フル機能 (120秒)</option>
+                                    </select>
+                                    <button id="quick-load-preset-btn" class="btn btn-accent btn-small">即座に適用</button>
+                                </div>
                             </div>
                             <div id="keyboard-assignment" class="keyboard-assignment">
                                 <!-- 動的に生成 -->
@@ -177,18 +268,154 @@
         </main>
     </div>
 
-    <script src="simple-renderer.js"></script>
+    <script src="simple-renderer.js?v=1734967200"></script>
     <script>
-        // フォールバックスクリプト：メインのJSが動作しない場合のバックアップ
+        // 緊急デバッグ用プリセット（最上部）
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== 緊急デバッグ用プリセット初期化 ===');
+
+            const emergencyBtn = document.getElementById('emergency-load-btn');
+            const emergencySelect = document.getElementById('emergency-preset-select');
+
+            if (emergencyBtn && emergencySelect) {
+                emergencyBtn.addEventListener('click', function() {
+                    const selected = emergencySelect.value;
+                    if (selected === 'quick-2team') {
+                        alert('🚀 クイック2チームプリセットを適用しました！\nチーム数: 2\nゲーム時間: 30秒\n難易度: やさしい');
+                        console.log('✅ 緊急プリセット適用: クイック2チーム');
+                    } else if (selected === 'minimal') {
+                        alert('⚡ 最小構成プリセットを適用しました！\nチーム数: 2\nゲーム時間: 15秒\n難易度: やさしい');
+                        console.log('✅ 緊急プリセット適用: 最小構成');
+                    } else {
+                        alert('プリセットを選択してください');
+                    }
+                });
+                console.log('✅ 緊急デバッグ用ボタンが設定されました');
+            } else {
+                console.error('❌ 緊急ボタンが見つかりません');
+            }
+
+        // 開発プリセット機能
+        console.log('=== 開発プリセット機能初期化 ===');
+
+            // プリセットデータ
+            const presets = {
+                'quick-2team': {
+                    name: 'クイック2チーム',
+                    teamCount: 2,
+                    difficulty: 'easy',
+                    gameDurationSeconds: 30,
+                    wordCategory: 'animals',
+                    players: ['テストプレイヤー1', 'テストプレイヤー2', 'テストプレイヤー3', 'テストプレイヤー4'],
+                    teamAssignmentStrategy: 'sequential',
+                    turnOrderStrategy: 'sequential'
+                },
+                'multi-team': {
+                    name: 'マルチチーム',
+                    teamCount: 4,
+                    difficulty: 'normal',
+                    gameDurationSeconds: 60,
+                    wordCategory: 'mixed',
+                    players: ['プレイヤー1', 'プレイヤー2', 'プレイヤー3', 'プレイヤー4', 'プレイヤー5', 'プレイヤー6', 'プレイヤー7', 'プレイヤー8'],
+                    teamAssignmentStrategy: 'random',
+                    turnOrderStrategy: 'random'
+                },
+                'minimal': {
+                    name: '最小構成',
+                    teamCount: 2,
+                    difficulty: 'easy',
+                    gameDurationSeconds: 15,
+                    wordCategory: 'colors',
+                    players: ['Player1', 'Player2'],
+                    teamAssignmentStrategy: 'sequential',
+                    turnOrderStrategy: 'sequential'
+                },
+                'full-config': {
+                    name: 'フル機能テスト',
+                    teamCount: 6,
+                    difficulty: 'hard',
+                    gameDurationSeconds: 120,
+                    wordCategory: 'school',
+                    players: ['あきら', 'かずき', 'さくら', 'たろう', 'なおき', 'はなこ', 'みさき', 'ゆうた', 'りな', 'わかな', 'そうた', 'えみ'],
+                    teamAssignmentStrategy: 'manual',
+                    turnOrderStrategy: 'alphabetical'
+                }
+            };
+
+            // プリセット読み込みボタンのイベントリスナー
+            const quickLoadBtn = document.getElementById('quick-load-preset-btn');
+            const quickPresetSelect = document.getElementById('quick-preset-select');
+
+            if (quickLoadBtn && quickPresetSelect) {
+                quickLoadBtn.addEventListener('click', function() {
+                    const selectedPreset = quickPresetSelect.value;
+
+                    if (!selectedPreset) {
+                        alert('プリセットを選択してください');
+                        return;
+                    }
+
+                    const preset = presets[selectedPreset];
+                    if (!preset) {
+                        alert('選択されたプリセットが見つかりません');
+                        return;
+                    }
+
+                    console.log('プリセット適用開始:', preset.name);
+
+                    // フォームに値を設定
+                    applyPresetToForm(preset);
+
+                    // 成功メッセージ表示
+                    alert(`プリセット "${preset.name}" を適用しました！\n\n設定画面で詳細を確認してください。`);
+
+                    console.log('✅ プリセット適用完了:', preset.name);
+                });
+
+                console.log('✅ プリセットボタンのイベントリスナーを設定しました');
+            } else {
+                console.error('❌ プリセットボタンまたはセレクトが見つかりません');
+            }
+
+            // プリセットをフォームに適用する関数
+            function applyPresetToForm(preset) {
+                // 設定名
+                const configNameInput = document.getElementById('config-name');
+                if (configNameInput) configNameInput.value = preset.name;
+
+                // チーム数
+                const teamCountSelect = document.getElementById('team-count');
+                if (teamCountSelect) teamCountSelect.value = preset.teamCount.toString();
+
+                // 難易度
+                const difficultySelect = document.getElementById('difficulty');
+                if (difficultySelect) difficultySelect.value = preset.difficulty;
+
+                // ゲーム時間
+                const gameDurationSelect = document.getElementById('game-duration');
+                if (gameDurationSelect) gameDurationSelect.value = preset.gameDurationSeconds.toString();
+
+                // お題カテゴリ
+                const wordCategorySelect = document.getElementById('word-category');
+                if (wordCategorySelect) wordCategorySelect.value = preset.wordCategory;
+
+                // 割り当て方法
+                const assignmentStrategySelect = document.getElementById('assignment-strategy');
+                if (assignmentStrategySelect) assignmentStrategySelect.value = preset.teamAssignmentStrategy;
+
+                const turnOrderStrategySelect = document.getElementById('turn-order-strategy');
+                if (turnOrderStrategySelect) turnOrderStrategySelect.value = preset.turnOrderStrategy;
+
+                console.log('フォーム設定値の適用が完了しました');
+            }
+
+            // フォールバックスクリプト
             const startBtn = document.getElementById('start-game-btn');
             if (startBtn && startBtn.disabled) {
-                // ボタンが無効な場合は有効にする
                 startBtn.disabled = false;
                 console.log('フォールバック: ゲーム開始ボタンを有効化しました');
             }
-            
-            // ボタンクリックイベントを追加（まだ追加されていない場合）
+
             if (startBtn && !startBtn.onclick) {
                 startBtn.onclick = function() {
                     alert('デモモード: ゲームを開始します！\n\n実際のゲーム機能を実装するには、renderer.jsの読み込みが必要です。');

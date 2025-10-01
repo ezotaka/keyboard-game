@@ -2,11 +2,11 @@
   "name": "keyboard-game",
   "version": "1.0.0",
   "description": "Multi-keyboard typing game for kindergarten children",
-  "main": "dist/main.js",
+  "main": "main.js",
   "scripts": {
+    "start": "npm run build && electron .",
+    "dev": "electron . --dev",
     "build": "tsc && npm run copy-assets",
-    "start": "electron .",
-    "dev": "npm run build && npm start",
     "copy-assets": "cp src/presentation/index.html dist/presentation/ && cp src/presentation/simple-renderer.js dist/presentation/ && cp -r src/presentation/styles dist/presentation/",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -18,7 +18,8 @@
     "dist:mac": "electron-builder --mac"
   },
   "dependencies": {
-    "node-hid": "^2.1.2"
+    "node-gyp": "^11.4.2",
+    "node-hid": "^2.2.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.5",
