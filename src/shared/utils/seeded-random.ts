@@ -38,7 +38,7 @@ export function seededShuffle<T>(array: T[], seed?: string): T[] {
  * ユニークなIDを生成
  */
 export function generateId(): string {
-    return `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `id_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**
