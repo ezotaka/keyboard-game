@@ -674,7 +674,6 @@ class GameUI {
         container.innerHTML = this.gameState.teams.map(team => {
             // DEV-24: 各チームの現在のお題を取得
             const teamWord = this.getTeamCurrentWord(team);
-            console.log(`[renderTeams] Team ${team.id}: wordIndex=${team.wordIndex}, word="${teamWord}"`);
             return `
                 <div class="team-panel team-${team.id}">
                     <div class="team-header">
